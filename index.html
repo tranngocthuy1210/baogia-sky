@@ -911,7 +911,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #b5bec9;padding
 <table><thead><tr><th>Tên sản phẩm</th><th>Thông tin sản phẩm</th><th>Đơn vị</th><th>Đơn giá</th><th>SL</th><th>Tổng tiền</th><th>Giảm giá</th><th>Thành tiền</th></tr></thead><tbody>
 ${sections(q).map(x => sec(x.title, x.lines, x.s, x.lb)).join('')}
 <tr class="grand"><td colspan="7">Tổng giá trị hợp đồng</td><td class="r">${vnd(q.grand)}</td></tr></tbody></table>
-<div class="note"><b>* Ghi chú:</b><br>${notesList().map(n => '- ' + n).join('<br>')}</div>`;
+<div class="note"><div class="nt"><b>* Ghi chú:</b></div>${notesList().map(n => `<div class="nt">- ${n}</div>`).join('')}</div>`;
   return { css, body };
 }
 function quoteDoc() {
@@ -943,7 +943,7 @@ $('btn-pdf').onclick = async () => {
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.co', '.info', '.clients', '.note'] }
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.co', '.info', '.clients img', '.nt', 'h1'] }
     }).from(frame.firstElementChild).outputPdf('blob');
     await offer(fileBase() + '.pdf', blob);
   } catch (e) { toast('Không tạo được PDF, thử lại sau giây lát'); }
@@ -1029,7 +1029,7 @@ $('btn-xlsx').onclick = async () => {
   const g = ws.addRow(['Tổng giá trị hợp đồng', '', '', '', '', '', '', q.grand]); ws.mergeCells(g.number, 1, g.number, 7);
   g.eachCell({ includeEmpty: true }, cl => { cl.fill = yellow; cl.font = { bold: true, size: 13, color: { argb: 'FFC95A00' } }; cl.border = border; }); g.getCell(8).numFmt = NF;
   ws.addRow([]);
-  const n = ws.addRow(['* Ghi chú:\n' + notesList().map(x => '- ' + x).join('\n')]); ws.mergeCells(n.number, 1, n.number, 8); n.getCell(1).alignment = { wrapText: true, vertical: 'top' }; n.height = 110;
+  const n = ws.addRow(['* Ghi chú:\n' + notesList().map(x => '- ' + x).join('\n')]); ws.mergeCells(n.number, 1, n.number, 8); n.getCell(1).alignment = { wrapText: true, vertical: 'top' }; n.height = 16 * (notesList().length + 1) + 8;
   const buf = await wb.xlsx.writeBuffer();
   offer(fileBase() + '.xlsx', new Blob([buf]));
 };
