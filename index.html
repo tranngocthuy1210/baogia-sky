@@ -274,7 +274,8 @@ textarea.copybox{width:100%;height:170px;font-family:ui-monospace,Consolas,monos
     <div class="acts">
       <button class="btn ghost" id="btn-reset" type="button">Làm mới</button>
       <button class="btn" id="btn-copy" type="button" title="Sao chép gửi Zalo"><svg width="16" height="16"><use href="#i-copy"/></svg><span class="t">Sao chép Zalo</span></button>
-      <button class="btn" id="btn-html" type="button" title="Tải bản in HTML"><svg width="16" height="16"><use href="#i-doc"/></svg><span class="t">Bản in</span></button>
+      <button class="btn" id="btn-html" type="button" title="Tải báo giá dạng HTML"><svg width="16" height="16"><use href="#i-doc"/></svg><span class="t">HTML</span></button>
+      <button class="btn" id="btn-pdf" type="button" title="Tải báo giá dạng PDF"><svg width="16" height="16"><use href="#i-doc"/></svg><span class="t">PDF</span></button>
       <button class="btn pri" id="btn-xlsx" type="button"><svg width="16" height="16"><use href="#i-dl"/></svg><span class="t">Tải Excel</span></button>
     </div>
   </div>
@@ -373,7 +374,7 @@ const CLIENTS = [
   { name: "Rau Má Mix", w: 132, h: 120, img: 'data:image/jpeg;base64,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' },
 ];
 document.getElementById('client-logos').innerHTML = CLIENTS.map(c => `<img src="${c.img}" alt="${c.name}" title="${c.name}" width="${c.w}" height="${c.h}">`).join('');
-const clientsHTML = () => CLIENTS.map(c => `<img src="${c.img}" alt="${c.name}" title="${c.name}">`).join('');
+const clientsHTML = () => CLIENTS.map(c => { const h = Math.min(36, 96 * c.h / c.w), w = h * c.w / c.h; return `<img src="${c.img}" alt="${c.name}" style="width:${w.toFixed(1)}px;height:${h.toFixed(1)}px">`; }).join('');
 
 /* ---------- Dữ liệu sản phẩm (lấy từ 2 form báo giá mẫu) ---------- */
 const COMPANY = {
@@ -891,27 +892,63 @@ async function offer(filename, data) {
   catch (e) { if (e && e.code === 'declined') return; toast(e && e.code === 'rate_limited' ? 'Đang có hộp thoại tải file, thử lại sau giây lát' : 'Không tải được file ở đây'); }
 }
 
-function quoteDoc() {
+function quoteParts(scope) {
   const q = build(), c = S.c;
   const rows = lines => { const gf = groupFinals(lines); return lines.map((l, i) => `<tr class="${l.gift ? 'gift' : ''}"><td${l.desc ? '' : ' colspan="2"'}><b>${esc(l.name)}</b>${l.sub ? `<div class="s">${esc(l.sub)}</div>` : ''}${l.img ? `<img src="${l.img}" alt="" style="display:block;width:110px;margin-top:6px">` : ''}</td>${l.desc ? `<td class="desc">${esc(l.desc).replace(/\n/g, '<br>')}</td>` : ''}<td>${esc(l.unit)}</td><td class="r">${vnd(l.price)}</td><td class="r">${l.qty}</td><td class="r">${vnd(l.total)}</td><td class="r">${l.disc ? vnd(l.disc) : '0'}</td>${gf[i] === null ? '' : gf[i].span > 1 ? `<td class="r" rowspan="${gf[i].span}" style="vertical-align:middle;color:#111;font-weight:bold">${vnd(gf[i].sum)}</td>` : `<td class="r">${l.gift ? 'Tặng' : vnd(l.total - l.disc)}</td>`}</tr>`).join(''); };
   const sec = (t, lines, s, lb) => lines.length ? `<tr class="sec"><td colspan="8">${esc(t)}</td></tr>${rows(lines)}<tr class="sum"><td colspan="5">Tổng tiền trước giảm giá / Giảm giá / Thành tiền ${lb}</td><td class="r">${vnd(s.total)}</td><td class="r">${vnd(s.disc)}</td><td class="r">${vnd(s.final)}</td></tr>` : '';
-  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Báo giá ${esc(c.ten)}</title><style>
-body{font-family:Inter,Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:24px}h1{text-align:center;font-size:20px;margin:16px 0;color:#005DA4}
+  const P = scope ? scope + ' ' : '', ROOT = scope || 'body';
+  const css = `body{font-family:Inter,Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:24px}h1{text-align:center;font-size:20px;margin:16px 0;color:#005DA4}
 .co b{font-size:15px}.co div{margin:2px 0}.info{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:12px 0}
 table{width:100%;border-collapse:collapse}th,td{border:1px solid #b5bec9;padding:5px 6px;vertical-align:top}th{background:#005DA4;color:#fff}
 .sec td{background:#e8f1f9;font-weight:bold}.sum td{font-weight:bold;background:#f3f5f7}.gift td{color:#c2410c}.r{text-align:right;white-space:nowrap}
 .desc{font-size:11px;color:#333;max-width:320px}.s{font-size:11px;color:#555}.grand td{font-weight:bold;font-size:14px;background:#fff2e6;color:#c95a00}.logo{height:44px;display:block;margin-bottom:6px}.co{border-bottom:3px solid #005DA4;padding-bottom:10px}
-.note{margin-top:14px;font-size:11.5px}.clients{text-align:center;margin:0 0 14px}.cl-t{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#667;margin-bottom:6px}.clients img{height:40px;max-width:100px;object-fit:contain;margin:3px 5px;vertical-align:middle}@media print{body{margin:8mm}}</style></head><body>
-<div class="co"><img class="logo" src="${LOGO}" alt="iPOS.vn"><b>${COMPANY.name}</b><div>VP Hà Nội: ${COMPANY.hn}</div><div>VP HCM: ${COMPANY.hcm}</div><div>Email: ${COMPANY.email} · Web: ${COMPANY.web}</div></div>
+.note{margin-top:14px;font-size:11.5px}.clients{text-align:center;margin:0 0 14px}.cl-t{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#667;margin-bottom:6px}.clients img{margin:4px 6px;vertical-align:middle}@media print{body{margin:8mm}}`.replace(/@media print\{[^}]*\}\}?/g, '')
+    .replace(/(^|\})\s*([^{}@]+)\{/g, (m, b, sel) => b + sel.split(',').map(x => x.trim() === 'body' ? ROOT : P + x.trim()).join(',') + '{');
+  const body = `<div class="co"><img class="logo" src="${LOGO}" alt="iPOS.vn"><b>${COMPANY.name}</b><div>VP Hà Nội: ${COMPANY.hn}</div><div>VP HCM: ${COMPANY.hcm}</div><div>Email: ${COMPANY.email} · Web: ${COMPANY.web}</div></div>
 <h1>BÁO GIÁ SẢN PHẨM</h1>
 <div class="clients"><div class="cl-t">Khách hàng tiêu biểu đang sử dụng giải pháp iPOS.vn</div>${clientsHTML()}</div>
 <div class="info"><div>Tên KH: <b>${esc(c.ten)}</b></div><div>Số báo giá: ${esc(c.so)}</div><div>SĐT: ${esc(c.sdt)}</div><div>Ngày gửi: ${fmtDate(c.ngay)}</div><div>Tên mô hình: ${esc(c.mohinh)}</div><div>NVKD: ${esc(c.nvkd)}</div><div>Địa chỉ: ${esc(c.diachi)}</div><div>SĐT: ${esc(c.nvsdt)}</div></div>
 <table><thead><tr><th>Tên sản phẩm</th><th>Thông tin sản phẩm</th><th>Đơn vị</th><th>Đơn giá</th><th>SL</th><th>Tổng tiền</th><th>Giảm giá</th><th>Thành tiền</th></tr></thead><tbody>
 ${sections(q).map(x => sec(x.title, x.lines, x.s, x.lb)).join('')}
 <tr class="grand"><td colspan="7">Tổng giá trị hợp đồng</td><td class="r">${vnd(q.grand)}</td></tr></tbody></table>
-<div class="note"><b>* Ghi chú:</b><br>${notesList().map(n => '- ' + n).join('<br>')}</div></body></html>`;
+<div class="note"><b>* Ghi chú:</b><br>${notesList().map(n => '- ' + n).join('<br>')}</div>`;
+  return { css, body };
+}
+function quoteDoc() {
+  const { css, body } = quoteParts('');
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Báo giá ${esc(S.c.ten)}</title><style>${css}@media print{body{margin:8mm}}</style></head><body>${body}</body></html>`;
 }
 $('btn-html').onclick = () => offer(fileBase() + '.html', quoteDoc());
+
+// PDF: dựng bản in trong khối ẩn rồi chụp thành trang A4 (giữ đúng dấu tiếng Việt và hình ảnh)
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+}
+$('btn-pdf').onclick = async () => {
+  const btn = $('btn-pdf'); if (btn.disabled) return;
+  btn.disabled = true; toast('Đang tạo file PDF…');
+  let frame;
+  try {
+    if (!window.html2pdf) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+    const { css, body } = quoteParts('.pdfdoc');
+    // Khối ngoài đặt ngoài màn hình; khối trong (được chụp) giữ vị trí bình thường
+    frame = document.createElement('div');
+    frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:733px';
+    // Rộng bằng vùng in A4 (194mm ≈ 733px) để không bị cắt mép phải
+    frame.innerHTML = `<div class="pdfdoc" style="width:726px;background:#fff"><style>${css}.pdfdoc{margin:0;padding:0;background:#fff;font-size:11px}.pdfdoc .desc{font-size:10px;max-width:none}.pdfdoc th,.pdfdoc td{padding:4px 5px;overflow-wrap:anywhere}.pdfdoc table{table-layout:fixed;min-width:0;font-size:11px}.pdfdoc th{color:#fff;background:#005DA4}.pdfdoc th:nth-child(1){width:19%}.pdfdoc th:nth-child(2){width:27%}.pdfdoc th:nth-child(3){width:7%}.pdfdoc th:nth-child(4){width:10%}.pdfdoc th:nth-child(5){width:5%}.pdfdoc th:nth-child(6){width:11%}.pdfdoc th:nth-child(7){width:10%}.pdfdoc th:nth-child(8){width:11%}.pdfdoc .r{white-space:nowrap;font-size:10.5px}.pdfdoc tr.grand td,.pdfdoc tr.grand td.r{font-size:12.5px;color:#c95a00}</style>${body}</div>`;
+    document.body.appendChild(frame);
+    await Promise.all([...frame.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+    const blob = await window.html2pdf().set({
+      margin: [8, 8, 10, 8],
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.co', '.info', '.clients', '.note'] }
+    }).from(frame.firstElementChild).outputPdf('blob');
+    await offer(fileBase() + '.pdf', blob);
+  } catch (e) { toast('Không tạo được PDF, thử lại sau giây lát'); }
+  finally { if (frame) frame.remove(); btn.disabled = false; }
+};
 
 function logoPng() {
   return new Promise((res, rej) => {
