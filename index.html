@@ -653,7 +653,7 @@ function posPicker() {
   if (folded('pos')) return head;
   return `${head}
     <div class="pos-grid" role="radiogroup" aria-label="Máy POS trong combo">${POS_LIST.map(p => `<button type="button" class="pos${p.id === cur.id ? ' on' : ''}" data-pos="${p.id}" role="radio" aria-checked="${p.id === cur.id}">
-      <span class="ck">${ico('check', 12)}</span><img src="${p.img}" alt="${esc(p.name)}" width="150" height="150">
+      <span class="ck">${ico('check', 12)}</span>
       <b>${p.model}</b><small>${p.tag}</small><span class="money">${vnd(p.price)}</span></button>`).join('')}</div>
     <details class="pos-spec" open><summary>Thông số ${esc(cur.name)}</summary><ul class="incl">${cur.specs.map(x => `<li>${ico('check')}<span>${esc(x)}</span></li>`).join('')}</ul></details>`;
 }
