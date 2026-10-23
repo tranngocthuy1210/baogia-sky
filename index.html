@@ -977,6 +977,21 @@ $('btn-pdf').onclick = async () => {
   finally { if (frame) frame.remove(); btn.disabled = false; }
 };
 
+// Ghép 30 logo khách hàng thành 1 ảnh PNG: mỗi logo nằm giữa 1 ô cố định, giữ đúng tỉ lệ
+async function clientsStripPng() {
+  const COLS = 10, CW = 300, CH = 120, PAD = 14;
+  const rows = Math.ceil(CLIENTS.length / COLS);
+  const cv = document.createElement('canvas'); cv.width = COLS * CW; cv.height = rows * CH;
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const imgs = await Promise.all(CLIENTS.map(c => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = c.img; })));
+  imgs.forEach((im, i) => {
+    const x0 = (i % COLS) * CW, y0 = Math.floor(i / COLS) * CH;
+    const k = Math.min((CW - 2 * PAD) / im.width, (CH - 2 * PAD) / im.height);
+    const w = im.width * k, h = im.height * k;
+    ctx.drawImage(im, x0 + (CW - w) / 2, y0 + (CH - h) / 2, w, h);
+  });
+  return { url: cv.toDataURL('image/png'), w: cv.width, h: cv.height };
+}
 function logoPng() {
   return new Promise((res, rej) => {
     const img = new Image();
@@ -984,6 +999,7 @@ function logoPng() {
     img.onerror = rej; img.src = LOGO;
   });
 }
+const XL_FONT = 'Arial';
 $('btn-xlsx').onclick = async () => {
   if (!window.ExcelJS) { toast('Chưa tải được thư viện Excel, thử lại sau giây lát'); return; }
   const q = build(), c = S.c;
@@ -996,7 +1012,7 @@ $('btn-xlsx').onclick = async () => {
   try {
     const png = await logoPng();
     const id = wb.addImage({ base64: png, extension: 'png' });
-    ws.addImage(id, { tl: { col: 6.1, row: 0.2 }, ext: { width: 179, height: 60 } });
+    ws.addImage(id, { tl: { col: 6.1, row: 0.2 }, ext: { width: 179, height: 60 }, editAs: 'oneCell' });
   } catch (e) {}
   ws.addRow([COMPANY.name]).font = { bold: true, size: 13, color: { argb: 'FF005DA4' } };
   ws.addRow(['VP Hà Nội', ': ' + COMPANY.hn]); ws.addRow(['VP HCM', ': ' + COMPANY.hcm]);
@@ -1005,20 +1021,13 @@ $('btn-xlsx').onclick = async () => {
   const t = ws.addRow(['BÁO GIÁ SẢN PHẨM']); ws.mergeCells(t.number, 1, t.number, 8); t.getCell(1).alignment = { horizontal: 'center' }; t.getCell(1).font = { bold: true, size: 18, color: { argb: 'FF005DA4' } };
   const cl = ws.addRow(['Khách hàng tiêu biểu đang sử dụng giải pháp iPOS.vn']); ws.mergeCells(cl.number, 1, cl.number, 8);
   cl.getCell(1).alignment = { horizontal: 'center' }; cl.getCell(1).font = { size: 9, color: { argb: 'FF667085' } };
-  const PER_ROW = 10;
   try {
-    const colPx = ws.columns.map(c => (c.width || 9) * 7 + 5), totalPx = colPx.reduce((a, b) => a + b, 0);
-    const toCol = x => { let i = 0; while (i < colPx.length - 1 && x >= colPx[i]) { x -= colPx[i]; i++; } return i + x / colPx[i]; };
-    const slot = totalPx / PER_ROW;
-    for (let r0 = 0; r0 < CLIENTS.length; r0 += PER_ROW) {
-      const lr = ws.addRow([]); lr.height = 40;
-      CLIENTS.slice(r0, r0 + PER_ROW).forEach((c, i) => {
-        let h = 38, w = c.w * h / c.h;
-        if (w > slot - 14) { w = slot - 14; h = w * c.h / c.w; }
-        const id = wb.addImage({ base64: c.img, extension: 'jpeg' });
-        ws.addImage(id, { tl: { col: toCol(i * slot + (slot - w) / 2), row: lr.number - 1 + (40 * 1.33 - h) / (40 * 1.33) / 2 }, ext: { width: w, height: h } });
-      });
-    }
+    const strip = await clientsStripPng();
+    const W = 900, H = Math.round(W * strip.h / strip.w);
+    const lr = ws.addRow([]); lr.height = Math.ceil(H * 0.75) + 6;
+    const id = wb.addImage({ base64: strip.url, extension: 'png' });
+    // căn giữa theo chiều ngang trang (cột A rộng ~215px)
+    ws.addImage(id, { tl: { col: 0.4, row: lr.number - 1 + 0.05 }, ext: { width: W, height: H }, editAs: 'oneCell' });
   } catch (e) {}
   ws.addRow([]);
   [['Tên KH', c.ten, 'Số báo giá', c.so], ['SĐT', c.sdt, 'Ngày gửi', fmtDate(c.ngay)], ['Tên mô hình', c.mohinh, 'NVKD', c.nvkd], ['Địa chỉ', c.diachi, 'SĐT', c.nvsdt]].forEach(r => {
@@ -1041,7 +1050,7 @@ $('btn-xlsx').onclick = async () => {
         r.height = Math.max(r.height, 150);
         r.getCell(1).alignment = { vertical: 'top', horizontal: 'center', wrapText: true };
         const id = wb.addImage({ base64: l.img, extension: 'jpeg' });
-        ws.addImage(id, { tl: { col: 0.22, row: r.number - 1 + 0.3 }, ext: { width: 120, height: 120 } });
+        ws.addImage(id, { tl: { col: 0.22, row: r.number - 1 + 0.3 }, ext: { width: 120, height: 120 }, editAs: 'oneCell' });
       }
       if (gf[i] === null) r.getCell(8).value = null;
       else if (gf[i].span > 1) { r.getCell(8).value = gf[i].sum; r.getCell(8).font = { bold: true }; merges.push([r.number, r.number + gf[i].span - 1]); }
@@ -1057,6 +1066,8 @@ $('btn-xlsx').onclick = async () => {
   g.eachCell({ includeEmpty: true }, cl => { cl.fill = yellow; cl.font = { bold: true, size: 13, color: { argb: 'FFC95A00' } }; cl.border = border; }); g.getCell(8).numFmt = NF;
   ws.addRow([]);
   const n = ws.addRow(['* Ghi chú:\n' + notesList().map(x => '- ' + x).join('\n')]); ws.mergeCells(n.number, 1, n.number, 8); n.getCell(1).alignment = { wrapText: true, vertical: 'top' }; n.height = 16 * (notesList().length + 1) + 8;
+  // Một font duy nhất (Arial có sẵn trên mọi máy, đủ dấu tiếng Việt) để chữ không bị đổi khi mở ở máy khác
+  ws.eachRow({ includeEmpty: true }, row => row.eachCell({ includeEmpty: true }, cell => { cell.font = Object.assign({ size: 11 }, cell.font || {}, { name: XL_FONT }); }));
   const buf = await wb.xlsx.writeBuffer();
   offer(fileBase() + '.xlsx', new Blob([buf]));
 };
