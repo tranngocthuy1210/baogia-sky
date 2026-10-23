@@ -870,7 +870,6 @@ function plainText() {
       : `Phần mềm FABi ${12 + (S.pSwitch ? 6 : 0)} tháng`;
     out.push('', `• ${name}: ${priceLine(m.t, m.f)}`);
     const perks = main.filter(l => l.gift).map(l => l.name.replace(/ theo gói Combo POS \+ 12 tháng/, '').replace('phần mềm FABi', 'FABi'));
-    if (S.combo && S.hddt) perks.push('Gói 10.000 hóa đơn điện tử chỉ còn 700.000đ');
     if (perks.length) out.push(`  Ưu đãi: ${perks.join('; ')}`);
     if (extra.length) {
       const e = sum(extra), g = extra.find(l => l.gift);
