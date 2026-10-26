@@ -570,7 +570,7 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
@@ -620,16 +620,46 @@ function depLines() {
   if (!d || !d.on || !(d.price > 0)) return [];
   return [L({ name: 'Chi phí triển khai tỉnh', sub: d.note || '', unit: 'ngày', price: d.price, qty: Math.max(1, d.days | 0) })];
 }
+/* Phần mềm FABiBox: bản quyền trọn đời 2.990.000; mua kèm máy POS giảm 1.000.000 vào phần mềm (máy POS chọn như combo FABi) */
+const FABIBOX = {
+  name: 'Phần mềm quản lý bán hàng FABiBox', price: 2990000, comboDisc: 1000000,
+  desc: [
+    'Quản lý bán hàng: gọi món, thanh toán, chọn món ăn kèm / topping trà sữa',
+    'Bán hàng tại bàn linh hoạt: chuyển bàn, gộp đơn, tách đơn',
+    'Tích hợp thanh toán QR đa năng Momo, thông báo giao dịch chuyển khoản',
+    'Thanh toán kèm giảm giá, chiết khấu',
+    'Báo cáo nhật ký gọi / bỏ món, sửa / xóa hóa đơn',
+    'Hệ thống báo cáo bán hàng',
+    'Thống kê đơn hàng từ GrabFood, ShopeeFood, BeFood',
+    'Quản lý từ xa qua điện thoại: doanh thu tức thời (real-time)',
+    'Quản lý vận hành cửa hàng từ xa: tạo thực đơn, khu vực bàn…',
+    'Báo cáo doanh thu tổng hợp, biểu đồ so sánh món / nhóm món, ngày / tuần / tháng'
+  ]
+};
+const posLine = () => { const pos = posOf(); return L({ name: pos.name, desc: pos.specs.join('\n'), unit: pos.unit, price: pos.price, qty: 1, img: pos.img }); };
+function boxLines(combo = S.boxCombo) {
+  const out = [L({ name: FABIBOX.name, sub: 'Bản quyền trọn đời', desc: FABIBOX.desc.join('\n'), unit: 'phiên bản', price: FABIBOX.price, qty: 1, disc: combo ? FABIBOX.comboDisc : 0 })];
+  if (combo) out.push(posLine());
+  // Ưu đãi tặng gói 10.000 HĐĐT iPOS Invoice (hạn dùng 6 tháng) + phí khởi tạo HĐĐT: tổng trị giá 2.300.000, tặng 100%
+  if (S.boxHddt) out.push(
+    L({ name: 'Tặng gói 10.000 HĐĐT iPOS Invoice', sub: 'Hạn sử dụng 6 tháng', unit: 'gói', price: 1800000, qty: 1, disc: 1800000, gift: true }),
+    L({ name: 'Tặng phí khởi tạo hóa đơn điện tử', sub: 'Thu 1 lần', unit: '1 lần', price: 500000, qty: 1, disc: 500000, gift: true }));
+  return out;
+}
+const boxPrice = combo => boxLines(combo).reduce((a, l) => a + l.total - l.disc, 0);
+const isBox = () => S.line === 'box';
 function build() {
   const A = [], B = [], C = [];
-  if (S.combo) {
+  if (isBox()) {
+    A.push(...boxLines());
+  } else if (S.combo) {
     A.push(...comboLines(S.hddt));
     if (S.pSwitch) A.push(L({ name: 'Tặng thêm 6 tháng phần mềm FABi', sub: 'Hỗ trợ chuyển đổi từ phần mềm khác', unit: 'tháng', price: FABI_MONTH, qty: 6, disc: 1500000, gift: true }));
   } else {
     A.push(...softOnlyLines());
     if (S.pSwitch) A.push(L({ name: 'Tặng thêm 6 tháng phần mềm FABi', sub: 'Hỗ trợ chuyển đổi từ phần mềm khác', unit: 'tháng', price: FABI_MONTH, qty: 6, disc: 1500000, gift: true }));
   }
-  A.push(...fxLines());
+  if (!isBox()) A.push(...fxLines());
   HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0), l.total); B.push(l); } });
   if (S.ivt && IVT[S.ivt]) ivtLines(S.ivt, S.ivtTerm).forEach(l => C.push(L(l)));
   if (S.hr && HR[S.hr]) hrLines(S.hr, S.hrTerm).forEach(l => C.push(L(l)));
@@ -639,7 +669,8 @@ function build() {
   return { A, B, C, D, sA, sB, sC, sD, total: sA.total + sB.total + sC.total + sD.total, grand: sA.final + sB.final + sC.final + sD.final, saved: sA.disc + sB.disc + sC.disc + sD.disc };
 }
 const comboPrice = hddt => comboLines(hddt).reduce((a, l) => a + l.total - l.disc, 0);
-const titleA = () => !S.combo ? `PHẦN MỀM FABi ${12 + (S.pSwitch ? 6 : 0) + fxMonths()} THÁNG`
+const titleA = () => isBox() ? (S.boxCombo ? 'GÓI COMBO FABiBox : POS + PHẦN MỀM BẢN QUYỀN TRỌN ĐỜI' : 'PHẦN MỀM QUẢN LÝ BÁN HÀNG FABiBox – BẢN QUYỀN TRỌN ĐỜI') + (S.boxHddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '')
+  : !S.combo ? `PHẦN MỀM FABi ${12 + (S.pSwitch ? 6 : 0) + fxMonths()} THÁNG`
   : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '');
 // Các mục lớn đánh chữ theo thứ tự chỉ trên những mục có sản phẩm (bỏ B thì C thành B)
 function sections(q) {
@@ -676,9 +707,28 @@ function renderCombo() {
       ${price != null ? `<span class="pi-p">${vnd(price)}<small>${key === 'none' ? '12 tháng' : 'trọn gói'}</small></span>` : ''}</button>
       ${on ? (key === 'none' ? softExtra() : comboExtra()) : ''}</div>`;
   };
-  const sumCombo = S.combo ? `${S.hddt ? 'Combo tặng HĐĐT' : 'Combo tiêu chuẩn'} · ${vnd(comboPrice(S.hddt))}` : 'Khách chỉ mua phần mềm';
+  const sumCombo = isBox()
+    ? `FABiBox ${S.boxCombo ? 'combo' : 'phần mềm'} · ${vnd(boxPrice(S.boxCombo))}`
+    : S.combo ? `${S.hddt ? 'Combo tặng HĐĐT' : 'Combo tiêu chuẩn'} · ${vnd(comboPrice(S.hddt))}` : 'Khách chỉ mua phần mềm';
   if (folded('combo')) { $('g-combo').innerHTML = grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo); return; }
-  $('g-combo').innerHTML = `${grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo)}
+  const lineTabs = `<div class="tabs" role="tablist" aria-label="Dòng phần mềm">${[['fabi', 'FABi'], ['box', 'FABiBox']].map(([k, t]) => `<button type="button" class="tab" role="tab" data-line="${k}" aria-selected="${S.line === k}">${t}</button>`).join('')}</div>`;
+  if (isBox()) {
+    const bplan = (key, title, price, chips) => {
+      const on = (key === 'bc') === !!S.boxCombo;
+      return `<div class="pi${on ? ' on' : ''}"><button type="button" class="pi-m" data-plan="${key}" role="radio" aria-checked="${on}">
+        ${mark(true)}<span class="pi-t"><b>${title}</b>${chips ? `<span class="chips">${chips}</span>` : ''}</span>
+        <span class="pi-p">${vnd(price)}<small>${key === 'bc' ? 'trọn gói' : 'trọn đời'}</small></span></button>
+        ${on ? `<div class="pi-x"><div class="sublabel">Ưu đãi hóa đơn điện tử</div>
+          <label class="promo${S.boxHddt ? ' on' : ''}" for="box-hddt"><span class="tx"><b>Tặng 10.000 HĐĐT · hạn dùng 6 tháng</b><span>Trị giá 2.300.000đ: gói 10.000 HĐĐT 1.800.000đ + phí khởi tạo 500.000đ</span></span><input type="checkbox" class="switch" id="box-hddt" ${S.boxHddt ? 'checked' : ''}></label></div>` : ''}</div>`;
+    };
+    $('g-combo').innerHTML = `${grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo)}${lineTabs}
+      <div role="radiogroup" aria-label="Gói FABiBox">
+      ${bplan('bc', 'Combo FABiBox + máy POS', boxPrice(true), '<span class="chip">Bản quyền trọn đời</span><span class="chip">Giảm 1.000.000 phần mềm</span>')}
+      ${bplan('bs', 'Khách chỉ mua phần mềm FABiBox', boxPrice(false), '<span class="chip n">Bản quyền trọn đời</span>')}
+      </div>${S.boxCombo ? posPicker() : ''}`;
+    return;
+  }
+  $('g-combo').innerHTML = `${grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo)}${lineTabs}
     <div role="radiogroup" aria-label="Gói combo">
     ${plan('h', 'Combo tặng 10.000 HĐĐT', '', comboPrice(true), '<span class="chip">Tặng 12 tháng</span><span class="chip">Tặng 10.000 HĐĐT</span>')}
     ${plan('s', 'Combo tiêu chuẩn', '', comboPrice(false), '<span class="chip">Tặng 12 tháng</span><span class="chip">Giảm 300.000</span>')}
@@ -703,6 +753,7 @@ function softExtra() {
 }
 const comboExtra = softExtra;
 function renderFx() {
+  if (isBox()) { $('g-fx').innerHTML = ''; return; }
   const g = S.fxGift && FX_GIFTS[S.fxGift];
   const sum = S.fx ? `Mua thêm 1 năm · ${g ? g.label : 'chưa chọn quà'}` : 'Chưa chọn';
   const head = grpHead('fx', 'Phần mềm FABi mua thêm', '', sum);
@@ -841,12 +892,15 @@ document.querySelector('.catalog').addEventListener('click', e => {
 });
 $('g-combo').addEventListener('click', e => {
   const ps = e.target.closest('[data-pos]'); if (ps) { S.pos = ps.dataset.pos; update(); return; }
+  const ln = e.target.closest('[data-line]'); if (ln) { S.line = ln.dataset.line; update(); return; }
   const b = e.target.closest('[data-plan]'); if (!b) return;
+  if (b.dataset.plan === 'bc' || b.dataset.plan === 'bs') { S.boxCombo = b.dataset.plan === 'bc'; update(); return; }
   const k = b.dataset.plan;
   if (k === 'none') S.combo = false; else { S.combo = true; S.hddt = k === 'h'; }
   update();
 });
 $('g-combo').addEventListener('change', e => {
+  if (e.target.id === 'box-hddt') { S.boxHddt = e.target.checked; update(); return; }
   if (e.target.id === 'p-switch') S.pSwitch = e.target.checked;
   update();
 });
@@ -928,7 +982,7 @@ function plainText() {
   const q = build(), c = S.c, out = [];
   const money = n => vnd(n) + 'đ';
   const priceLine = (total, final) => final < total ? `${money(final)} (giá gốc ${money(total)}, giảm ${money(total - final)})` : money(final);
-  out.push('BÁO GIÁ FABi – iPOS.vn');
+  out.push(`BÁO GIÁ ${isBox() ? 'FABiBox' : 'FABi'} – iPOS.vn`);
   if (c.ten) out.push(`Kính gửi: ${c.ten}${c.mohinh ? ' – ' + c.mohinh : ''}`);
   out.push(`Ngày: ${fmtDate(c.ngay)}`);
 
@@ -941,7 +995,9 @@ function plainText() {
     // Ghi rõ tổng số tháng đã gồm tháng tặng, tránh khách hiểu là cộng dồn thêm
     const parts = ['mua 12 tháng', S.combo && 'tặng 12 tháng', S.pSwitch && 'tặng 6 tháng chuyển đổi'].filter(Boolean);
     const total = 12 + (S.combo ? 12 : 0) + (S.pSwitch ? 6 : 0);
-    const name = S.combo
+    const name = isBox()
+      ? (S.boxCombo ? `Combo FABiBox (phần mềm bản quyền trọn đời) + máy POS ${posOf().model}` : 'Phần mềm FABiBox – bản quyền trọn đời') + (S.boxHddt ? ' + tặng 10.000 hóa đơn điện tử (dùng 6 tháng)' : '')
+      : S.combo
       ? `Combo FABi ${total} tháng (${parts.join(' + ')}) + máy POS ${posOf().model}${S.hddt ? ' + 10.000 hóa đơn điện tử' : ''}`
       : `Phần mềm FABi ${total} tháng${parts.length > 1 ? ` (${parts.join(' + ')})` : ''}`;
     out.push('', `• ${name}: ${priceLine(m.t, m.f)}`);
