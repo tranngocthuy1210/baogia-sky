@@ -987,7 +987,7 @@ function quoteParts(scope) {
 .co b{font-size:15px}.co div{margin:2px 0}.info{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:12px 0}
 table{width:100%;border-collapse:collapse}th,td{border:1px solid #b5bec9;padding:5px 6px;vertical-align:top}th{background:#005DA4;color:#fff}
 .sec td{background:#e8f1f9;font-weight:bold}.sum td{font-weight:bold;background:#f3f5f7}.gift td{color:#c2410c}.r{text-align:right;white-space:nowrap}
-.desc{font-size:11px;color:#333;max-width:320px}.s{font-size:11px;color:#555}.grand td{font-weight:bold;font-size:14px;background:#fff2e6;color:#c95a00}.logo{height:44px;display:block;margin-bottom:6px}.co{border-bottom:3px solid #005DA4;padding-bottom:10px}
+.desc{font-size:11px;color:#333;max-width:320px}.s{font-size:11px;color:#555}.grand td{font-weight:bold;font-size:12px;background:#fff2e6;color:#c95a00}.logo{height:44px;display:block;margin-bottom:6px}.co{border-bottom:3px solid #005DA4;padding-bottom:10px}
 .note{margin-top:14px;font-size:11.5px}.clients{text-align:center;margin:0 0 14px}.cl-t{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#667;margin-bottom:6px}.clients img{margin:4px 6px;vertical-align:middle}@media print{body{margin:8mm}}`.replace(/@media print\{[^}]*\}\}?/g, '')
     .replace(/(^|\})\s*([^{}@]+)\{/g, (m, b, sel) => b + sel.split(',').map(x => x.trim() === 'body' ? ROOT : P + x.trim()).join(',') + '{');
   const body = `<div class="co"><img class="logo" src="${LOGO}" alt="iPOS.vn"><b>${COMPANY.name}</b><div>VP Hà Nội: ${COMPANY.hn}</div><div>VP HCM: ${COMPANY.hcm}</div><div>Email: ${COMPANY.email} · Web: ${COMPANY.web}</div></div>
@@ -1101,8 +1101,8 @@ async function buildPdf() {
     ty = doc.lastAutoTable.finalY;
   });
   if (PH - 12 - ty < 12) { doc.addPage(); ty = 10; }
-  table([[{ content: 'Tổng giá trị hợp đồng', colSpan: 7, styles: { fontStyle: 'bold', fontSize: 10.5, textColor: ORANGE, fillColor: gold } },
-    { content: vnd(q.grand), styles: { fontStyle: 'bold', fontSize: 10.5, textColor: ORANGE, fillColor: gold } }]], { startY: ty, showHead: 'never' });
+  table([[{ content: 'Tổng giá trị hợp đồng', colSpan: 7, styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } },
+    { content: vnd(q.grand), styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } }]], { startY: ty, showHead: 'never' });
 
   // Ghi chú: mỗi dòng xuống trang nguyên vẹn
   let ny = doc.lastAutoTable.finalY + 6;
@@ -1202,7 +1202,7 @@ $('btn-xlsx').onclick = async () => {
   };
   sections(q).forEach(x => sec(x.title, x.lines, x.s, x.lb));
   const g = ws.addRow(['Tổng giá trị hợp đồng', '', '', '', '', '', '', q.grand]); ws.mergeCells(g.number, 1, g.number, 7);
-  g.eachCell({ includeEmpty: true }, cl => { cl.fill = yellow; cl.font = { bold: true, size: 13, color: { argb: 'FFC95A00' } }; cl.border = border; }); g.getCell(8).numFmt = NF;
+  g.eachCell({ includeEmpty: true }, cl => { cl.fill = yellow; cl.font = { bold: true, size: 11, color: { argb: 'FFC95A00' } }; cl.border = border; }); g.getCell(8).numFmt = NF;
   ws.addRow([]);
   const n = ws.addRow(['* Ghi chú:\n' + notesList().map(x => '- ' + x).join('\n')]); ws.mergeCells(n.number, 1, n.number, 8); n.getCell(1).alignment = { wrapText: true, vertical: 'top' }; n.height = 16 * (notesList().length + 1) + 8;
   // Một font duy nhất (Arial có sẵn trên mọi máy, đủ dấu tiếng Việt) để chữ không bị đổi khi mở ở máy khác
