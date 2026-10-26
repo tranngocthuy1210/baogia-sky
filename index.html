@@ -585,11 +585,11 @@ function fxLines() {
   }
   return out;
 }
-// Chi phí triển khai: đơn giá/ngày do NVKD tự nhập, nhân số ngày
+// Chi phí triển khai tỉnh: đơn giá/ngày do NVKD tự nhập, nhân số ngày
 function depLines() {
   const d = S.dep;
   if (!d || !d.on || !(d.price > 0)) return [];
-  return [L({ name: 'Chi phí triển khai', sub: d.note || '', unit: 'ngày', price: d.price, qty: Math.max(1, d.days | 0) })];
+  return [L({ name: 'Chi phí triển khai tỉnh', sub: d.note || '', unit: 'ngày', price: d.price, qty: Math.max(1, d.days | 0) })];
 }
 function build() {
   const A = [], B = [], C = [];
@@ -614,7 +614,7 @@ const titleA = () => !S.combo ? `PHẦN MỀM FABi ${12 + (S.pSwitch ? 6 : 0) + 
   : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '');
 // Các mục lớn đánh chữ theo thứ tự chỉ trên những mục có sản phẩm (bỏ B thì C thành B)
 function sections(q) {
-  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ TRIỂN KHAI', q.D, q.sD]]
+  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
     .filter(([, lines]) => lines.length)
     .map(([t, lines, s], i) => { const L = 'ABCD'[i]; return { title: `${L} - ${t}`, lines, s, lb: `(${L})` }; });
 }
@@ -785,11 +785,11 @@ function renderDoc() {
 
 function renderDep() {
   const d = S.dep, days = Math.max(1, d.days | 0), tot = d.price * days;
-  const head = grpHead('dep', 'Chi phí triển khai', 'Tính theo ngày', d.on ? (d.price > 0 ? `${days} ngày · ${vnd(tot)}` : 'Chưa nhập đơn giá') : 'Chưa chọn');
+  const head = grpHead('dep', 'Chi phí triển khai tỉnh', 'Tính theo ngày', d.on ? (d.price > 0 ? `${days} ngày · ${vnd(tot)}` : 'Chưa nhập đơn giá') : 'Chưa chọn');
   if (folded('dep')) { $('g-dep').innerHTML = head; return; }
   $('g-dep').innerHTML = `${head}
     <div class="pi${d.on ? ' on' : ''}"><button type="button" class="pi-m" data-dep aria-pressed="${d.on}">
-      ${mark()}<span class="pi-t"><b>Thêm chi phí triển khai</b><small>Nhập đơn giá mỗi ngày và số ngày triển khai</small></span>
+      ${mark()}<span class="pi-t"><b>Thêm chi phí triển khai tỉnh</b><small>Nhập đơn giá mỗi ngày và số ngày triển khai</small></span>
       <span class="pi-p" id="dep-total">${d.on && d.price > 0 ? vnd(tot) : '—'}<small>${days} ngày</small></span></button>
       ${d.on ? `<div class="pi-x">
         <div class="ctl"><label for="dep-price">Đơn giá / ngày (đ)</label><input class="inp-s" id="dep-price" data-depf="price" value="${d.price ? vnd(d.price) : ''}" inputmode="numeric" placeholder="VD: 1.000.000"></div>
@@ -928,7 +928,7 @@ function plainText() {
     out.push(`• Chấm công ${HR[S.hr].name} – ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} cửa hàng` : ''}: ${priceLine(t, f)}`);
   }
 
-  q.D.forEach(l => out.push(`• Chi phí triển khai (${l.qty} ngày${l.sub ? ', ' + l.sub : ''}): ${money(l.total)}`));
+  q.D.forEach(l => out.push(`• Chi phí triển khai tỉnh (${l.qty} ngày${l.sub ? ', ' + l.sub : ''}): ${money(l.total)}`));
   out.push('', `TỔNG THANH TOÁN: ${money(q.grand)}`);
   if (q.saved) out.push(`Tiết kiệm: ${money(q.saved)}`);
   out.push('', `Liên hệ: ${c.nvkd}${c.nvsdt ? ' – ' + c.nvsdt : ''}`);
