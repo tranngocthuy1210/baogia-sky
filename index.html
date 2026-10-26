@@ -692,8 +692,7 @@ function posPicker() {
   return `${head}
     <div class="pos-grid" role="radiogroup" aria-label="Máy POS trong combo">${POS_LIST.map(p => `<button type="button" class="pos${p.id === cur.id ? ' on' : ''}" data-pos="${p.id}" role="radio" aria-checked="${p.id === cur.id}">
       <span class="ck">${ico('check', 12)}</span>
-      <b>${p.model}</b><small>${p.tag}</small><span class="money">${vnd(p.price)}</span></button>`).join('')}</div>
-    <details class="pos-spec" open><summary>Thông số ${esc(cur.name)}</summary><ul class="incl">${cur.specs.map(x => `<li>${ico('check')}<span>${esc(x)}</span></li>`).join('')}</ul></details>`;
+      <b>${p.model}</b><small>${p.tag}</small><span class="money">${vnd(p.price)}</span></button>`).join('')}</div>`;
 }
 const switchPromo = () => `<label class="promo${S.pSwitch ? ' on' : ''}" for="p-switch"><span class="tx"><b>Tặng 6 tháng · +${vnd(1500000)}</b><span>Khách chuyển từ phần mềm bên khác</span></span><input type="checkbox" class="switch" id="p-switch" ${S.pSwitch ? 'checked' : ''}></label>`;
 function softExtra() {
