@@ -578,7 +578,7 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, einv: { pkg: 10000, fresh: true, inp: 0, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
@@ -586,7 +586,7 @@ try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw
 // Mỗi lần mở trang: ngày gửi = hôm nay, số báo giá tự sinh theo ngày (nếu chưa sửa tay)
 if (S.c.ngay !== today()) { S.c.ngay = today(); if (/^\d{8}\|iPOS$/.test(S.c.so)) S.c.so = quoteNo(); }
 if (S.line === 'box' && S.ivt === 'prokho') S.ivt = '';
-S.einv = Object.assign({ pkg: 10000, fresh: true, inp: 0, cq: 0, cp: 0 }, S.einv || {});
+S.einv = Object.assign({ pkg: 10000, fresh: true, cq: 0, cp: 0 }, S.einv || {});
 if (!S.einv.sig) {  // chuyển dữ liệu cũ (1 lựa chọn) sang dạng mới
   const [t, m] = (S.einv.cks || '').split('-');
   S.einv.sig = { usb: { on: t === 'usb', mode: t === 'usb' ? m : 'new', y: S.einv.cksY || 1 }, hsm: { on: t === 'hsm', mode: t === 'hsm' ? m : 'new', y: S.einv.cksY || 1 } };
@@ -673,7 +673,6 @@ const CKS = {
   'hsm-new':   { label: 'Cloud HSM mới',     name: 'Chữ ký số HILO – Cloud HSM đăng ký mới',             p: { 1: 880000, 2: 1408000, 3: 2112000 } },
   'hsm-renew': { label: 'Cloud HSM gia hạn', name: 'Chữ ký số HILO – Cloud HSM gia hạn',                 p: { 1: 880000, 2: 1408000, 3: 2112000 } }
 };
-const EINV_INPUT = [[1000, 580000], [3000, 1350000], [5000, 1800000], [10000, 3200000], [20000, 5800000]];
 const EINV_NOTES = [
   'Phí khởi tạo hóa đơn điện tử chỉ áp dụng cho khách hàng mua mới; khách hàng gia hạn chỉ cần mua gói hóa đơn.',
   'Không hạn chế thời gian sử dụng hóa đơn; sử dụng hết hóa đơn đã mua thì chỉ cần mua thêm gói hóa đơn.',
@@ -696,8 +695,6 @@ function invoiceLines() {
     const k = CKS[`${t}-${g.mode === 'renew' ? 'renew' : 'new'}`], y = [1, 2, 3].includes(+g.y) ? +g.y : 1;
     out.push(L({ name: k.name, sub: `${y} năm · đã bao gồm VAT`, desc: t === 'hsm' ? 'Ký số không giới hạn số lượng người ký và số lượng hóa đơn' : '', unit: 'gói', price: k.p[y], qty: 1 }));
   });
-  const ip = EINV_INPUT.find(x => x[0] === +e.inp);
-  if (ip) out.push(L({ name: `Gói quản lý hóa đơn đầu vào ${nfmt(ip[0])}`, sub: `Mua mới tặng thêm ${nfmt(ip[0])} hóa đơn đầu vào · miễn phí khởi tạo`, unit: 'gói', price: ip[1], qty: 1 }));
   return out;
 }
 function build() {
@@ -794,9 +791,7 @@ function renderCombo() {
             <div class="cks-row"><span class="cks-l">Hình thức</span><div class="tabs">${[['new', 'Đăng ký mới'], ['renew', 'Gia hạn']].map(([v, tx]) => `<button type="button" class="tab" data-sig-mode="${t}:${v}" aria-selected="${(g.mode === 'renew' ? 'renew' : 'new') === v}">${tx}</button>`).join('')}</div></div>
             <div class="terms" role="radiogroup" aria-label="Thời hạn ${title}">${[1, 2, 3].map(y => `<button type="button" class="term${+g.y === y ? ' on' : ''}" data-sig-y="${t}:${y}" role="radio" aria-checked="${+g.y === y}"><b>${y} năm</b><span class="money">${vnd(k.p[y])}</span></button>`).join('')}</div>
           </div>` : ''}</div>`;
-      }).join('')}
-      <div class="grp-t">Quản lý hóa đơn đầu vào <span>Tặng 100% · miễn phí khởi tạo</span></div>
-      ${grid([[0, 'Không dùng', '', null], ...EINV_INPUT.map(([n, pr]) => [n, 'Gói ' + nfmt(n), `tặng thêm ${nfmt(n)}`, pr])], 'data-einv-inp', e.inp)}`;
+      }).join('')}`;
     return;
   }
   if (isBox()) {
@@ -990,11 +985,10 @@ $('g-combo').addEventListener('click', e => {
     else { const [t, y] = d.sigY.split(':'); S.einv.sig[t].y = +y; }
     update(); return;
   }
-  const ev = e.target.closest('[data-einv-pkg],[data-einv-inp]');
+  const ev = e.target.closest('[data-einv-pkg]');
   if (ev) {
     const d = ev.dataset;
     if (d.einvPkg) S.einv.pkg = +d.einvPkg;
-    else if (d.einvInp != null) S.einv.inp = +d.einvInp;
     update(); return;
   }
   const ln = e.target.closest('[data-line]'); if (ln) { S.line = ln.dataset.line; if (isBox() && S.ivt === 'prokho') S.ivt = ''; update(); return; }
