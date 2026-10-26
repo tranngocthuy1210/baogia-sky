@@ -664,7 +664,6 @@ const EINV_INPUT = [[1000, 580000], [3000, 1350000], [5000, 1800000], [10000, 32
 const EINV_NOTES = [
   'Phí khởi tạo hóa đơn điện tử chỉ áp dụng cho khách hàng mua mới; khách hàng gia hạn chỉ cần mua gói hóa đơn.',
   'Không hạn chế thời gian sử dụng hóa đơn; sử dụng hết hóa đơn đã mua thì chỉ cần mua thêm gói hóa đơn.',
-  'Được cấp bù số lượng hóa đơn khi chuyển đổi từ nhà cung cấp khác sang iPOS Invoice, không quá 5.000 hóa đơn.',
   'Giá chữ ký số đã bao gồm VAT.'
 ];
 const nfmt = n => n.toLocaleString('vi-VN');
@@ -675,7 +674,7 @@ function invoiceLines() {
   } else {
   const pk = EINV_PKGS.find(x => x[0] === e.pkg) || EINV_PKGS[2];
   out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`, sub: `${nfmt(pk[0])} hóa đơn · ${pk[1]}đ/hóa đơn`,
-    desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Cấp bù tối đa 5.000 hóa đơn khi chuyển từ nhà cung cấp khác', 'Phần mềm không chịu thuế GTGT'].join('\n'),
+    desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'),
     unit: 'gói', price: pk[0] * pk[1], qty: 1 }));
   }
   if (e.fresh) out.push(L({ name: 'Phí khởi tạo hóa đơn điện tử', sub: 'Áp dụng khách hàng mua mới', unit: '1 lần', price: EINV_SETUP, qty: 1 }));
