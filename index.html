@@ -755,13 +755,13 @@ function renderCombo() {
     : isBox()
     ? `FABiBox ${S.boxCombo ? 'combo' : 'phần mềm'} · ${vnd(boxPrice(S.boxCombo))}`
     : S.combo ? `${S.hddt ? 'Combo tặng HĐĐT' : 'Combo tiêu chuẩn'} · ${vnd(comboPrice(S.hddt))}` : 'Khách chỉ mua phần mềm';
-  if (folded('combo')) { $('g-combo').innerHTML = grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo); return; }
+  if (folded('combo')) { $('g-combo').innerHTML = grpHead('combo', 'Chọn giải pháp', '', sumCombo); return; }
   const lineTabs = `<div class="tabs" role="tablist" aria-label="Dòng phần mềm">${[['fabi', 'FABi'], ['box', 'FABiBox'], ['inv', 'iPOS Invoice']].map(([k, t]) => `<button type="button" class="tab" role="tab" data-line="${k}" aria-selected="${S.line === k}">${t}</button>`).join('')}</div>`;
   if (isInv()) {
     const e = S.einv;
     const grid = (items, attr, cur) => `<div class="pos-grid">${items.map(([v, b, sm, pr]) => `<button type="button" class="pos${String(v) === String(cur) ? ' on' : ''}" ${attr}="${v}" role="radio" aria-checked="${String(v) === String(cur)}"><span class="ck">${ico('check', 12)}</span><b>${b}</b>${sm ? `<small>${sm}</small>` : ''}${pr != null ? `<span class="money">${vnd(pr)}</span>` : ''}</button>`).join('')}</div>`;
     const cksSel = e.cks && CKS[e.cks];
-    $('g-combo').innerHTML = `${grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo)}${lineTabs}
+    $('g-combo').innerHTML = `${grpHead('combo', 'Chọn giải pháp', '', sumCombo)}${lineTabs}
       <div class="grp-t" style="padding-top:2px">Gói hóa đơn điện tử <span>Không giới hạn thời gian</span></div>
       ${grid([...EINV_PKGS.map(([n, u]) => [n, 'I-' + nfmt(n), `${u}đ/hóa đơn`, n * u]), [0, 'I-KHÁC', 'Liên hệ · tự nhập giá', null]], 'data-einv-pkg', e.pkg)}
       ${e.pkg === 0 ? `<div class="pi-x" style="padding:0 4px 12px">
@@ -786,14 +786,14 @@ function renderCombo() {
         ${on ? `<div class="pi-x"><div class="sublabel">Ưu đãi hóa đơn điện tử</div>
           <label class="promo${S.boxHddt ? ' on' : ''}" for="box-hddt"><span class="tx"><b>Tặng 10.000 HĐĐT · hạn dùng 6 tháng</b></span><input type="checkbox" class="switch" id="box-hddt" ${S.boxHddt ? 'checked' : ''}></label></div>` : ''}</div>`;
     };
-    $('g-combo').innerHTML = `${grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo)}${lineTabs}
+    $('g-combo').innerHTML = `${grpHead('combo', 'Chọn giải pháp', '', sumCombo)}${lineTabs}
       <div role="radiogroup" aria-label="Gói FABiBox">
       ${bplan('bc', 'Combo FABiBox + máy POS', boxPrice(true), '<span class="chip">Bản quyền trọn đời</span><span class="chip">Giảm 1.000.000 phần mềm</span>')}
       ${bplan('bs', 'Khách chỉ mua phần mềm FABiBox', boxPrice(false), '<span class="chip n">Bản quyền trọn đời</span>')}
       </div>${S.boxCombo ? posPicker() : ''}`;
     return;
   }
-  $('g-combo').innerHTML = `${grpHead('combo', 'Gói combo phần mềm + máy POS', '', sumCombo)}${lineTabs}
+  $('g-combo').innerHTML = `${grpHead('combo', 'Chọn giải pháp', '', sumCombo)}${lineTabs}
     <div role="radiogroup" aria-label="Gói combo">
     ${plan('h', 'Combo tặng 10.000 HĐĐT', '', comboPrice(true), '<span class="chip">Tặng 12 tháng</span><span class="chip">Tặng 10.000 HĐĐT</span>')}
     ${plan('s', 'Combo tiêu chuẩn', '', comboPrice(false), '<span class="chip">Tặng 12 tháng</span><span class="chip">Giảm 300.000</span>')}
