@@ -693,6 +693,11 @@ function invoiceLines() {
     unit: 'hóa đơn', price: pk[1], qty: pk[0] }));
   }
   if (e.fresh) out.push(L({ name: 'Phí khởi tạo hóa đơn điện tử', sub: 'Áp dụng khách hàng mua mới', unit: '1 lần', price: EINV_SETUP, qty: 1 }));
+  return out;
+}
+// Chữ ký số HILO: mục riêng (B) trên báo giá iPOS Invoice
+function cksLines() {
+  const e = S.einv, out = [];
   ['usb', 'hsm'].forEach(t => {
     const g = e.sig && e.sig[t]; if (!g || !g.on) return;
     const k = CKS[`${t}-${g.mode === 'renew' ? 'renew' : 'new'}`], y = [1, 2, 3].includes(+g.y) ? +g.y : 1;
@@ -704,6 +709,7 @@ function build() {
   const A = [], B = [], C = [];
   if (isInv()) {
     A.push(...invoiceLines());
+    B.push(...cksLines());
   } else if (isBox()) {
     A.push(...boxLines());
   } else if (S.combo) {
@@ -725,12 +731,12 @@ function build() {
   return { A, B, C, D, sA, sB, sC, sD, total: sA.total + sB.total + sC.total + sD.total, grand: sA.final + sB.final + sC.final + sD.final, saved: sA.disc + sB.disc + sC.disc + sD.disc };
 }
 const comboPrice = hddt => comboLines(hddt).reduce((a, l) => a + l.total - l.disc, 0);
-const titleA = () => isInv() ? 'HÓA ĐƠN ĐIỆN TỬ IPOS INVOICE' + ((S.einv.sig.usb.on || S.einv.sig.hsm.on) ? ' + CHỮ KÝ SỐ HILO' : '') : isBox() ? (S.boxCombo ? 'GÓI COMBO FABiBox : POS + PHẦN MỀM BẢN QUYỀN TRỌN ĐỜI' : 'PHẦN MỀM QUẢN LÝ BÁN HÀNG FABiBox – BẢN QUYỀN TRỌN ĐỜI') + (S.boxHddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '')
+const titleA = () => isInv() ? 'HÓA ĐƠN ĐIỆN TỬ IPOS INVOICE' : isBox() ? (S.boxCombo ? 'GÓI COMBO FABiBox : POS + PHẦN MỀM BẢN QUYỀN TRỌN ĐỜI' : 'PHẦN MỀM QUẢN LÝ BÁN HÀNG FABiBox – BẢN QUYỀN TRỌN ĐỜI') + (S.boxHddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '')
   : !S.combo ? `PHẦN MỀM FABi ${12 + (S.pSwitch ? 6 : 0) + fxMonths()} THÁNG`
   : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '');
 // Các mục lớn đánh chữ theo thứ tự chỉ trên những mục có sản phẩm (bỏ B thì C thành B)
 function sections(q) {
-  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
+  return [[titleA(), q.A, q.sA], [isInv() ? 'CHỮ KÝ SỐ HILO' : 'THIẾT BỊ MUA THÊM', q.B, q.sB], ['PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
     .filter(([, lines]) => lines.length)
     .map(([t, lines, s], i) => { const L = 'ABCD'[i]; return { title: `${L} - ${t}`, lines, s, lb: `(${L})` }; });
 }
@@ -764,7 +770,7 @@ function renderCombo() {
       ${on ? (key === 'none' ? softExtra() : comboExtra()) : ''}</div>`;
   };
   const sumCombo = isInv()
-    ? `iPOS Invoice ${S.einv.pkg ? 'I-' + nfmt(S.einv.pkg) : 'I-KHÁC'} · ${vnd(invoiceLines().reduce((a, l) => a + l.total - l.disc, 0))}`
+    ? `iPOS Invoice ${S.einv.pkg ? 'I-' + nfmt(S.einv.pkg) : 'I-KHÁC'} · ${vnd([...invoiceLines(), ...cksLines()].reduce((a, l) => a + l.total - l.disc, 0))}`
     : isBox()
     ? `FABiBox ${S.boxCombo ? 'combo' : 'phần mềm'} · ${vnd(boxPrice(S.boxCombo))}`
     : S.combo ? `${S.hddt ? 'Combo tặng HĐĐT' : 'Combo tiêu chuẩn'} · ${vnd(comboPrice(S.hddt))}` : 'Khách chỉ mua phần mềm';
@@ -1098,7 +1104,7 @@ function plainText() {
   out.push(`Ngày: ${fmtDate(c.ngay)}`);
 
   // iPOS Invoice: mỗi dòng 1 mục
-  if (isInv()) q.A.forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.unit === 'hóa đơn' ? ` (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)` : l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
+  if (isInv()) [...q.A, ...q.B].forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.unit === 'hóa đơn' ? ` (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)` : l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
   // Phần mềm FABi / combo
   else if (q.A.length) {
     const main = q.A.filter(l => !/mua thêm/i.test(l.name) && !/khi mua thêm/i.test(l.sub || ''));
@@ -1120,7 +1126,7 @@ function plainText() {
     }
   }
   // Thiết bị
-  q.B.forEach(l => out.push(`• ${l.name}${l.qty > 1 ? ' × ' + l.qty : ''}: ${priceLine(l.total, l.total - l.disc)}`));
+  if (!isInv()) q.B.forEach(l => out.push(`• ${l.name}${l.qty > 1 ? ' × ' + l.qty : ''}: ${priceLine(l.total, l.total - l.disc)}`));
   // Phần mềm bổ sung: mỗi gói 1 dòng
   if (!isInv() && S.ivt && IVT[S.ivt]) {
     const t = ivtLines(S.ivt, S.ivtTerm).reduce((a, l) => a + l.price * l.qty, 0), f = ivtTotal(S.ivt, S.ivtTerm);
