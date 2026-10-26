@@ -701,7 +701,8 @@ function build() {
     if (S.pSwitch) A.push(L({ name: 'Tặng thêm 6 tháng phần mềm FABi', sub: 'Hỗ trợ chuyển đổi từ phần mềm khác', unit: 'tháng', price: FABI_MONTH, qty: 6, disc: 1500000, gift: true }));
   }
   if (S.line === 'fabi') A.push(...fxLines());
-  HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0), l.total); B.push(l); } });
+  // Tab iPOS Invoice không bán kèm thiết bị (giữ lựa chọn để khi quay lại FABi/FABiBox vẫn còn)
+  if (!isInv()) HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0), l.total); B.push(l); } });
   if (S.ivt && IVT[S.ivt]) ivtLines(S.ivt, S.ivtTerm).forEach(l => C.push(L(l)));
   if (S.hr && HR[S.hr]) hrLines(S.hr, S.hrTerm).forEach(l => C.push(L(l)));
   const D = depLines();
@@ -832,6 +833,7 @@ function renderFx() {
       </div>` : ''}</div>`;
 }
 function renderHW() {
+  if (isInv()) { $('g-hw').innerHTML = ''; return; }
   const n = HW.filter(h => S.hw[h.id].on).length;
   const head = grpHead('hw', 'Thiết bị mua thêm', 'Đã gồm VAT', n ? `${n} thiết bị đã chọn` : 'Chưa chọn thiết bị');
   if (folded('hw')) { $('g-hw').innerHTML = head; return; }
