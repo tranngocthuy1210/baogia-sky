@@ -552,7 +552,7 @@ function ivtLines(k, term, n = S.ivtN || 1) {
   if (term === '15') out.push({ name: `Tặng thêm 3 tháng ${v.base}`, sub: 'Mô hình chuỗi từ 3 cửa hàng' + kho, unit: 'tháng/kho', price: v.month, qty: 3 * khoCount, disc: v.month * 3 * khoCount, gift: true, grp: 'ivt' });
   return out;
 }
-const notesList = () => [...NOTES, ...(S.line === 'inv' ? EINV_NOTES : []), ...(S.ivt ? [IVT_NOTE] : []), ...(S.hr ? [HR_NOTE] : [])];
+const notesList = () => S.line === 'inv' ? ['Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(S.ivt ? [IVT_NOTE] : []), ...(S.hr ? [HR_NOTE] : [])];
 const ivtTotal = (k, term, n) => ivtLines(k, term, n).reduce((a, l) => a + l.price * l.qty - (l.disc || 0), 0);
 const IVT_NOTE = 'Đơn giá iPOS Inventory chưa bao gồm chi phí triển khai ngoại thành Hà Nội, Hồ Chí Minh.';
 const NOTES = [
@@ -703,9 +703,10 @@ function build() {
   if (S.line === 'fabi') A.push(...fxLines());
   // Tab iPOS Invoice không bán kèm thiết bị (giữ lựa chọn để khi quay lại FABi/FABiBox vẫn còn)
   if (!isInv()) HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0), l.total); B.push(l); } });
-  if (S.ivt && IVT[S.ivt]) ivtLines(S.ivt, S.ivtTerm).forEach(l => C.push(L(l)));
-  if (S.hr && HR[S.hr]) hrLines(S.hr, S.hrTerm).forEach(l => C.push(L(l)));
-  const D = depLines();
+  // Tab iPOS Invoice chỉ báo giá hóa đơn điện tử: bỏ phần mềm bổ sung và chi phí triển khai (giữ lựa chọn cho tab khác)
+  if (!isInv() && S.ivt && IVT[S.ivt]) ivtLines(S.ivt, S.ivtTerm).forEach(l => C.push(L(l)));
+  if (!isInv() && S.hr && HR[S.hr]) hrLines(S.hr, S.hrTerm).forEach(l => C.push(L(l)));
+  const D = isInv() ? [] : depLines();
   const sum = arr => { const s = arr.reduce((a, l) => ({ total: a.total + l.total, disc: a.disc + l.disc }), { total: 0, disc: 0 }); s.final = s.total - s.disc; return s; };
   const sA = sum(A), sB = sum(B), sC = sum(C), sD = sum(D);
   return { A, B, C, D, sA, sB, sC, sD, total: sA.total + sB.total + sC.total + sD.total, grand: sA.final + sB.final + sC.final + sD.final, saved: sA.disc + sB.disc + sC.disc + sD.disc };
@@ -854,6 +855,7 @@ function renderHW() {
   }).join('');
 }
 function renderSoft() {
+  if (isInv()) { $('g-soft').innerHTML = ''; return; }
   const hrRow = (k) => {
     const on = S.hr === k, h = HR[k];
     return `<div class="pi${on ? ' on' : ''}"><button type="button" class="pi-m" data-hr="${k}" role="radio" aria-checked="${on}">
@@ -933,6 +935,7 @@ function renderDoc() {
 }
 
 function renderDep() {
+  if (isInv()) { $('g-dep').innerHTML = ''; return; }
   const d = S.dep, days = Math.max(1, d.days | 0), tot = d.price * days;
   const head = grpHead('dep', 'Chi phí triển khai tỉnh', 'Tính theo ngày', d.on ? (d.price > 0 ? `${days} ngày · ${vnd(tot)}` : 'Chưa nhập đơn giá') : 'Chưa chọn');
   if (folded('dep')) { $('g-dep').innerHTML = head; return; }
@@ -1091,11 +1094,11 @@ function plainText() {
   // Thiết bị
   q.B.forEach(l => out.push(`• ${l.name}${l.qty > 1 ? ' × ' + l.qty : ''}: ${priceLine(l.total, l.total - l.disc)}`));
   // Phần mềm bổ sung: mỗi gói 1 dòng
-  if (S.ivt && IVT[S.ivt]) {
+  if (!isInv() && S.ivt && IVT[S.ivt]) {
     const t = ivtLines(S.ivt, S.ivtTerm).reduce((a, l) => a + l.price * l.qty, 0), f = ivtTotal(S.ivt, S.ivtTerm);
     out.push(`• ${IVT[S.ivt].name} – ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} cửa hàng` : ''}: ${priceLine(t, f)}`);
   }
-  if (S.hr && HR[S.hr]) {
+  if (!isInv() && S.hr && HR[S.hr]) {
     const t = hrLines(S.hr, S.hrTerm).reduce((a, l) => a + l.price * l.qty, 0), f = hrTotal(S.hr, S.hrTerm);
     out.push(`• Chấm công ${HR[S.hr].name} – ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} cửa hàng` : ''}: ${priceLine(t, f)}`);
   }
