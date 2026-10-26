@@ -550,7 +550,8 @@ const NOTES = [
 
 /* ---------- Trạng thái ---------- */
 const KEY = 'fabi-quote-v1';
-const today = () => new Date().toISOString().slice(0, 10);
+// Ngày theo giờ máy người dùng (giờ Việt Nam), không dùng UTC để tránh lùi 1 ngày trước 7h sáng
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
