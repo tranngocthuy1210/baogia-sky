@@ -73,9 +73,20 @@ h1,h2,.doc h2.title{font-variation-settings:"opsz" 32}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--ink-3);font-weight:600}
 .btn.ghost:hover{color:var(--promo)}
 .btn.ghost.armed{color:var(--promo)}
-@media (max-width:900px){.acts .btn .t{display:none}.acts .btn{padding:0 11px}.acts .btn.pri .t{display:inline}}
+.btn .ts{display:none}
+/* Màn hình hẹp: nút luôn có chữ ngắn (Zalo / HTML / PDF / Excel) để phân biệt */
+@media (max-width:900px){.acts .btn .t{display:none}.acts .btn .ts{display:inline}.acts .btn{padding:0 11px}}
 @media (max-width:560px){.bar p{display:none}.acts .btn.ghost{display:none}.bar .vr{display:none}.bar h1{font-size:15px}.bar .brand-logo{height:24px}}
-@media (max-width:420px){.acts{gap:6px}.acts .btn.pri .t{display:none}.bar-in{gap:8px}.mbar .btn{padding:0 12px}.mbar .t b{font-size:18px}}
+/* Điện thoại: tiêu đề 1 dòng, 4 nút xuống hàng riêng chia đều chiều ngang */
+@media (max-width:640px){
+  .bar-in{height:auto;flex-wrap:wrap;padding-block:8px;gap:8px 10px}
+  .bar h1{white-space:nowrap}
+  .bar .sp{display:none}
+  .acts{order:3;width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .acts .btn{height:36px;padding:0 6px;font-size:12.5px;gap:5px}
+  .acts .btn svg{width:14px;height:14px}
+  .mbar .btn{padding:0 12px}.mbar .t b{font-size:18px}
+}
 
 /* Grid */
 .wrap{max-width:1480px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:20px;align-items:start}
@@ -274,10 +285,10 @@ textarea.copybox{width:100%;height:170px;font-family:ui-monospace,Consolas,monos
     <div class="sp"></div>
     <div class="acts">
       <button class="btn ghost" id="btn-reset" type="button">Làm mới</button>
-      <button class="btn" id="btn-copy" type="button" title="Sao chép gửi Zalo"><svg width="16" height="16"><use href="#i-copy"/></svg><span class="t">Sao chép Zalo</span></button>
-      <button class="btn" id="btn-html" type="button" title="Tải báo giá dạng HTML"><svg width="16" height="16"><use href="#i-doc"/></svg><span class="t">HTML</span></button>
-      <button class="btn" id="btn-pdf" type="button" title="Tải báo giá dạng PDF"><svg width="16" height="16"><use href="#i-doc"/></svg><span class="t">PDF</span></button>
-      <button class="btn pri" id="btn-xlsx" type="button"><svg width="16" height="16"><use href="#i-dl"/></svg><span class="t">Tải Excel</span></button>
+      <button class="btn" id="btn-copy" type="button" title="Sao chép gửi Zalo"><svg width="16" height="16"><use href="#i-copy"/></svg><span class="t">Sao chép Zalo</span><span class="ts">Zalo</span></button>
+      <button class="btn" id="btn-html" type="button" title="Tải báo giá dạng HTML"><svg width="16" height="16"><use href="#i-doc"/></svg><span class="t">HTML</span><span class="ts">HTML</span></button>
+      <button class="btn" id="btn-pdf" type="button" title="Tải báo giá dạng PDF"><svg width="16" height="16"><use href="#i-doc"/></svg><span class="t">PDF</span><span class="ts">PDF</span></button>
+      <button class="btn pri" id="btn-xlsx" type="button"><svg width="16" height="16"><use href="#i-dl"/></svg><span class="t">Tải Excel</span><span class="ts">Excel</span></button>
     </div>
   </div>
 </header>
