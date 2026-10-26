@@ -920,7 +920,7 @@ function renderSoft() {
       </div>` : ''}</div>`;
   };
   const picked = [S.ivt && `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''}`, S.hr && `${HR[S.hr].name.replace('iPOS HRM · ', 'HRM ')} ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} CH` : ''}`].filter(Boolean);
-  const head = grpHead('soft', 'Phần mềm bổ sung', '', picked.length ? picked.join(' · ') : 'Chưa chọn');
+  const head = grpHead('soft', 'Phần mềm bổ sung (IVT + HRM)', '', picked.length ? picked.join(' · ') : 'Chưa chọn');
   if (folded('soft')) { $('g-soft').innerHTML = head; return; }
   $('g-soft').innerHTML = `${head}
     ${grpHead('ivt', 'Quản lý kho · chọn 1 gói', '', S.ivt ? `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''} · ${vnd(ivtTotal(S.ivt, S.ivtTerm))}` : 'Chưa chọn')}
