@@ -1153,75 +1153,120 @@ function logoPng() {
   });
 }
 const XL_FONT = 'Arial';
+// Ước lượng số dòng khi chữ tự xuống dòng trong ô rộng `w` (đơn vị độ rộng cột Excel); k > 1 cho chữ đậm / có dấu
+const xlLines = (text, w, k = 1.08) => String(text || '').split('\n').reduce((a, t) => a + Math.max(1, Math.ceil(t.length * k / Math.max(4, w - 1.5))), 0);
 $('btn-xlsx').onclick = async () => {
   if (!window.ExcelJS) { toast('Chưa tải được thư viện Excel, thử lại sau giây lát'); return; }
   const q = build(), c = S.c;
-  const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('Báo giá', { pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
-  ws.columns = [{ width: 30 }, { width: 62 }, { width: 9 }, { width: 12 }, { width: 5 }, { width: 12 }, { width: 12 }, { width: 13 }];
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Báo giá', { pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } }, views: [{ showGridLines: false }] });
+  // Độ rộng cột cố định: A Tên | B Thông tin | C Đơn vị | D Đơn giá | E SL | F Tổng tiền | G Giảm giá | H Thành tiền
+  const W = [30, 58, 11, 13, 6, 14, 13, 15], WALL = W.reduce((a, b) => a + b, 0);
+  ws.columns = W.map(width => ({ width }));
   const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
   const head = fill('FF005DA4'), light = fill('FFE8F1F9'), grey = fill('FFF3F5F7'), yellow = fill('FFFFF2E6');
-  const border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-  const NF = '#,##0';
-  try {
-    const png = await logoPng();
-    const id = wb.addImage({ base64: png, extension: 'png' });
-    ws.addImage(id, { tl: { col: 6.1, row: 0.2 }, ext: { width: 179, height: 60 }, editAs: 'oneCell' });
-  } catch (e) {}
-  ws.addRow([COMPANY.name]).font = { bold: true, size: 13, color: { argb: 'FF005DA4' } };
-  ws.addRow(['VP Hà Nội', ': ' + COMPANY.hn]); ws.addRow(['VP HCM', ': ' + COMPANY.hcm]);
-  ws.addRow(['Email', ': ' + COMPANY.email]); ws.addRow(['Web', ': ' + COMPANY.web]);
-  ws.addRow([]);
-  const t = ws.addRow(['BÁO GIÁ SẢN PHẨM']); ws.mergeCells(t.number, 1, t.number, 8); t.getCell(1).alignment = { horizontal: 'center' }; t.getCell(1).font = { bold: true, size: 18, color: { argb: 'FF005DA4' } };
-  const cl = ws.addRow(['Khách hàng tiêu biểu đang sử dụng giải pháp iPOS.vn']); ws.mergeCells(cl.number, 1, cl.number, 8);
-  cl.getCell(1).alignment = { horizontal: 'center' }; cl.getCell(1).font = { size: 9, color: { argb: 'FF667085' } };
+  const border = { top: { style: 'thin', color: { argb: 'FFB5BEC9' } }, left: { style: 'thin', color: { argb: 'FFB5BEC9' } }, bottom: { style: 'thin', color: { argb: 'FFB5BEC9' } }, right: { style: 'thin', color: { argb: 'FFB5BEC9' } } };
+  const NF = '#,##0', BLUE = { argb: 'FF005DA4' }, GREYT = { argb: 'FF667085' };
+  const merge = (r, c1, c2) => ws.mergeCells(r, c1, r, c2);
+  const LH = 14.5; // chiều cao 1 dòng chữ Arial 11 (pt)
+
+  // 1) Logo iPOS: hàng riêng, không đè lên chữ
+  const lg = ws.addRow([]); lg.height = 48;
+  try { ws.addImage(wb.addImage({ base64: await logoPng(), extension: 'png' }), { tl: { col: 0.05, row: 0.1 }, ext: { width: 170, height: 57 }, editAs: 'oneCell' }); } catch (e) {}
+
+  // 2) Thông tin công ty: nhãn cột A, nội dung gộp B:H
+  const cn = ws.addRow([COMPANY.name]); merge(cn.number, 1, 8); cn.height = 20;
+  cn.getCell(1).font = { bold: true, size: 13, color: BLUE };
+  [['VP Hà Nội', COMPANY.hn], ['VP HCM', COMPANY.hcm], ['Liên hệ', `${COMPANY.email}  ·  ${COMPANY.web}`]].forEach(([k, v]) => {
+    const r = ws.addRow([k, v]); merge(r.number, 2, 8); r.height = 16;
+    r.getCell(1).font = { color: GREYT }; r.getCell(2).font = { color: GREYT };
+  });
+  ws.addRow([]).height = 8;
+
+  // 3) Tiêu đề + dải logo khách hàng (1 ảnh, nằm trong hàng riêng)
+  const t = ws.addRow(['BÁO GIÁ SẢN PHẨM']); merge(t.number, 1, 8); t.height = 30;
+  t.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }; t.getCell(1).font = { bold: true, size: 18, color: BLUE };
+  const cl = ws.addRow(['KHÁCH HÀNG TIÊU BIỂU ĐANG SỬ DỤNG GIẢI PHÁP IPOS.VN']); merge(cl.number, 1, 8); cl.height = 16;
+  cl.getCell(1).alignment = { horizontal: 'center' }; cl.getCell(1).font = { size: 9, color: GREYT };
   try {
     const strip = await clientsStripPng();
-    const W = 900, H = Math.round(W * strip.h / strip.w);
-    const lr = ws.addRow([]); lr.height = Math.ceil(H * 0.75) + 6;
-    const id = wb.addImage({ base64: strip.url, extension: 'png' });
-    // căn giữa theo chiều ngang trang (cột A rộng ~215px)
-    ws.addImage(id, { tl: { col: 0.4, row: lr.number - 1 + 0.05 }, ext: { width: W, height: H }, editAs: 'oneCell' });
+    const SW = 900, SH = Math.round(SW * strip.h / strip.w);
+    const lr = ws.addRow([]); lr.height = Math.ceil(SH * 0.75) + 6;
+    const colPx = W.map(w => w * 7 + 5), totalPx = colPx.reduce((a, b) => a + b, 0);
+    const off = Math.max(0, (totalPx - SW) / 2);
+    ws.addImage(wb.addImage({ base64: strip.url, extension: 'png' }), { tl: { col: off / colPx[0], row: lr.number - 1 + 0.04 }, ext: { width: SW, height: SH }, editAs: 'oneCell' });
   } catch (e) {}
-  ws.addRow([]);
-  [['Tên KH', c.ten, 'Số báo giá', c.so], ['SĐT', c.sdt, 'Ngày gửi', fmtDate(c.ngay)], ['Tên mô hình', c.mohinh, 'NVKD', c.nvkd], ['Địa chỉ', c.diachi, 'SĐT', c.nvsdt]].forEach(r => {
-    const row = ws.addRow(r); row.getCell(1).font = { bold: true }; row.getCell(3).font = { bold: true };
+  ws.addRow([]).height = 8;
+
+  // 4) Thông tin khách hàng: A nhãn | B giá trị | C:E nhãn | F:H giá trị (không để chữ tràn sang ô bên cạnh)
+  [['Tên KH', c.ten, 'Số báo giá', c.so], ['SĐT', c.sdt, 'Ngày gửi', fmtDate(c.ngay)], ['Tên mô hình', c.mohinh, 'NVKD', c.nvkd], ['Địa chỉ', c.diachi, 'SĐT', c.nvsdt]].forEach(([a, b, x, y]) => {
+    const r = ws.addRow([a, b || '', x, '', '', y || '']); merge(r.number, 3, 5); merge(r.number, 6, 8);
+    r.height = Math.max(18, xlLines(b, W[1]) * LH + 4);
+    [1, 3].forEach(i => { r.getCell(i).font = { color: GREYT }; r.getCell(i).alignment = { vertical: 'top' }; });
+    [2, 6].forEach(i => { r.getCell(i).font = { bold: true }; r.getCell(i).alignment = { vertical: 'top', wrapText: true }; });
   });
-  ws.addRow([]);
+  ws.addRow([]).height = 10;
+
+  // 5) Bảng báo giá theo từng mục
   const sec = (title, lines, s, lb) => {
     if (!lines.length) return;
-    const h = ws.addRow([title]); ws.mergeCells(h.number, 1, h.number, 8); h.getCell(1).fill = light; h.getCell(1).font = { bold: true, size: 12 };
-    const hd = ws.addRow(['Tên sản phẩm', 'Thông tin sản phẩm', 'Đơn vị', 'Đơn giá', 'SL', 'Tổng tiền', 'Giảm giá', 'Thành tiền']);
-    hd.eachCell(cl => { cl.fill = head; cl.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cl.border = border; cl.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; });
+    const h = ws.addRow([title]); merge(h.number, 1, 8); h.height = 22;
+    h.getCell(1).fill = light; h.getCell(1).font = { bold: true, size: 11.5 }; h.getCell(1).alignment = { vertical: 'middle' };
+    for (let i = 1; i <= 8; i++) h.getCell(i).border = border;
+    const hd = ws.addRow(['Tên sản phẩm', 'Thông tin sản phẩm', 'Đơn vị', 'Đơn giá', 'SL', 'Tổng tiền', 'Giảm giá', 'Thành tiền']); hd.height = 22;
+    hd.eachCell(x => { x.fill = head; x.font = { bold: true, color: { argb: 'FFFFFFFF' } }; x.border = border; x.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; });
     const gf = groupFinals(lines), merges = [];
     lines.forEach((l, i) => {
-      const r = ws.addRow([l.name + (l.sub ? '\n' + l.sub : ''), l.desc || '', l.unit, l.price, l.qty, l.total, l.gift ? -l.disc : l.disc, l.total - l.disc]);
-      r.eachCell({ includeEmpty: true }, (cl, i) => { cl.border = border; cl.alignment = { vertical: 'middle', wrapText: true, horizontal: i >= 4 ? 'right' : (i === 3 ? 'center' : 'left') }; if (i >= 4 && i !== 5) cl.numFmt = NF; });
+      const name = l.name + (l.sub ? '\n' + l.sub : '');
+      const r = ws.addRow([name, l.desc || '', l.unit, l.price, l.qty, l.total, l.gift ? -l.disc : l.disc, l.total - l.disc]);
+      // chiều cao hàng theo ô nhiều chữ nhất (tên / thông tin / đơn vị) để không bị cắt chữ
+      const nameL = xlLines(name, l.desc ? W[0] : W[0] + W[1], 1.18);
+      const descL = l.desc ? xlLines(l.desc, W[1], 0.92) : 0;
+      const unitL = xlLines(l.unit, W[2], 1.1);
+      let hgt = Math.max(nameL * LH, descL * 13, unitL * LH) + 8;
+      const textH = nameL * LH + 6;
+      if (l.img) hgt = Math.max(hgt, textH + 92);
+      r.height = Math.min(409, Math.ceil(hgt));
+      for (let k = 1; k <= 8; k++) {
+        const x = r.getCell(k); x.border = border;
+        x.alignment = { vertical: 'middle', wrapText: true, horizontal: k >= 4 ? (k === 5 ? 'center' : 'right') : (k === 3 ? 'center' : 'left') };
+        if (k >= 4 && k !== 5) x.numFmt = NF;
+      }
       r.getCell(1).font = { bold: true, color: l.gift ? { argb: 'FFC2410C' } : undefined };
-      if (!l.desc) ws.mergeCells(r.number, 1, r.number, 2);
-      else r.getCell(1).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-      const n = (l.desc || '').split('\n').length; r.height = Math.max(30, Math.min(400, 15 * Math.max(n, l.name.length > 32 ? 3 : 2)));
+      if (!l.desc) merge(r.number, 1, 2);
+      else {
+        r.getCell(1).alignment = { vertical: l.img ? 'top' : 'middle', horizontal: 'center', wrapText: true };
+        r.getCell(2).font = { size: 10, color: { argb: 'FF333333' } }; r.getCell(2).alignment = { vertical: 'top', wrapText: true };
+      }
       if (l.img) {
-        r.height = Math.max(r.height, 150);
-        r.getCell(1).alignment = { vertical: 'top', horizontal: 'center', wrapText: true };
-        const id = wb.addImage({ base64: l.img, extension: 'jpeg' });
-        ws.addImage(id, { tl: { col: 0.22, row: r.number - 1 + 0.3 }, ext: { width: 120, height: 120 }, editAs: 'oneCell' });
+        const px = 112; // ảnh 112px ≈ 84pt, đặt ngay dưới tên sản phẩm, căn giữa cột A
+        ws.addImage(wb.addImage({ base64: l.img, extension: 'jpeg' }), { tl: { col: ((W[0] * 7 + 5) - px) / 2 / (W[0] * 7 + 5), row: r.number - 1 + textH / r.height }, ext: { width: px, height: px }, editAs: 'oneCell' });
       }
       if (gf[i] === null) r.getCell(8).value = null;
       else if (gf[i].span > 1) { r.getCell(8).value = gf[i].sum; r.getCell(8).font = { bold: true }; merges.push([r.number, r.number + gf[i].span - 1]); }
+      else r.getCell(8).font = { bold: true, color: l.gift ? { argb: 'FFC2410C' } : undefined };
+      if (l.gift && gf[i] && gf[i].span === 1) r.getCell(8).value = 'Tặng';
     });
     merges.forEach(([a, b]) => { ws.mergeCells(a, 8, b, 8); ws.getCell(a, 8).alignment = { vertical: 'middle', horizontal: 'right' }; });
-    const sr = ws.addRow(['Tổng tiền trước giảm giá / Giảm giá / Thành tiền ' + lb, '', '', '', '', s.total, s.disc, s.final]);
-    ws.mergeCells(sr.number, 1, sr.number, 5);
-    sr.eachCell({ includeEmpty: true }, (cl, i) => { cl.fill = grey; cl.font = { bold: true }; cl.border = border; if (i >= 6) cl.numFmt = NF; });
-    ws.addRow([]);
+    const sr = ws.addRow(['Tổng tiền trước giảm giá / Giảm giá / Thành tiền ' + lb, '', '', '', '', s.total, s.disc, s.final]); sr.height = 20;
+    merge(sr.number, 1, 5);
+    for (let k = 1; k <= 8; k++) { const x = sr.getCell(k); x.fill = grey; x.font = { bold: true }; x.border = border; x.alignment = { vertical: 'middle', horizontal: k >= 6 ? 'right' : 'left' }; if (k >= 6) x.numFmt = NF; }
+    ws.addRow([]).height = 8;
   };
   sections(q).forEach(x => sec(x.title, x.lines, x.s, x.lb));
-  const g = ws.addRow(['Tổng giá trị hợp đồng', '', '', '', '', '', '', q.grand]); ws.mergeCells(g.number, 1, g.number, 7);
-  g.eachCell({ includeEmpty: true }, cl => { cl.fill = yellow; cl.font = { bold: true, size: 11, color: { argb: 'FFC95A00' } }; cl.border = border; }); g.getCell(8).numFmt = NF;
-  ws.addRow([]);
-  const n = ws.addRow(['* Ghi chú:\n' + notesList().map(x => '- ' + x).join('\n')]); ws.mergeCells(n.number, 1, n.number, 8); n.getCell(1).alignment = { wrapText: true, vertical: 'top' }; n.height = 16 * (notesList().length + 1) + 8;
-  // Một font duy nhất (Arial có sẵn trên mọi máy, đủ dấu tiếng Việt) để chữ không bị đổi khi mở ở máy khác
+  const g = ws.addRow(['Tổng giá trị hợp đồng', '', '', '', '', '', '', q.grand]); merge(g.number, 1, 7); g.height = 22;
+  for (let k = 1; k <= 8; k++) { const x = g.getCell(k); x.fill = yellow; x.font = { bold: true, color: { argb: 'FFC95A00' } }; x.border = border; x.alignment = { vertical: 'middle', horizontal: k === 8 ? 'right' : 'left' }; }
+  g.getCell(8).numFmt = NF;
+  ws.addRow([]).height = 8;
+
+  // 6) Ghi chú: chiều cao theo số dòng thực tế
+  const noteText = '* Ghi chú:\n' + notesList().map(x => '- ' + x).join('\n');
+  const n = ws.addRow([noteText]); merge(n.number, 1, 8);
+  n.getCell(1).alignment = { wrapText: true, vertical: 'top' }; n.height = xlLines(noteText, WALL, 1.05) * LH + 8;
+
+  // Một font duy nhất (Arial có sẵn trên mọi máy, đủ dấu tiếng Việt)
   ws.eachRow({ includeEmpty: true }, row => row.eachCell({ includeEmpty: true }, cell => { cell.font = Object.assign({ size: 11 }, cell.font || {}, { name: XL_FONT }); }));
+  ws.pageSetup.printArea = `A1:H${ws.rowCount}`;
   const buf = await wb.xlsx.writeBuffer();
   offer(fileBase() + '.xlsx', new Blob([buf]));
 };
