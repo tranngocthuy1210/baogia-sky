@@ -682,12 +682,12 @@ const nfmt = n => n.toLocaleString('vi-VN');
 function invoiceLines() {
   const e = S.einv, out = [];
   if (e.pkg === 0) {
-    if (e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice I-KHÁC', sub: `${nfmt(e.cq)} hóa đơn · ${nfmt(e.cp)}đ/hóa đơn`, desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'), unit: 'gói', price: e.cq * e.cp, qty: 1 }));
+    if (e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice I-KHÁC', desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'), unit: 'hóa đơn', price: e.cp, qty: e.cq }));
   } else {
   const pk = EINV_PKGS.find(x => x[0] === e.pkg) || EINV_PKGS[2];
-  out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`, sub: `${nfmt(pk[0])} hóa đơn · ${pk[1]}đ/hóa đơn`,
+  out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`,
     desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'),
-    unit: 'gói', price: pk[0] * pk[1], qty: 1 }));
+    unit: 'hóa đơn', price: pk[1], qty: pk[0] }));
   }
   if (e.fresh) out.push(L({ name: 'Phí khởi tạo hóa đơn điện tử', sub: 'Áp dụng khách hàng mua mới', unit: '1 lần', price: EINV_SETUP, qty: 1 }));
   ['usb', 'hsm'].forEach(t => {
@@ -1092,7 +1092,7 @@ function plainText() {
   out.push(`Ngày: ${fmtDate(c.ngay)}`);
 
   // iPOS Invoice: mỗi dòng 1 mục
-  if (isInv()) q.A.forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
+  if (isInv()) q.A.forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.unit === 'hóa đơn' ? ` (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)` : l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
   // Phần mềm FABi / combo
   else if (q.A.length) {
     const main = q.A.filter(l => !/mua thêm/i.test(l.name) && !/khi mua thêm/i.test(l.sub || ''));
@@ -1158,7 +1158,7 @@ async function offer(filename, data) {
 
 function quoteParts(scope) {
   const q = build(), c = S.c;
-  const rows = lines => { const gf = groupFinals(lines); return lines.map((l, i) => `<tr class="${l.gift ? 'gift' : ''}"><td${l.desc ? ' style="text-align:center;vertical-align:middle"' : ' colspan="2"'}><b>${esc(l.name)}</b>${l.sub ? `<div class="s">${esc(l.sub)}</div>` : ''}${l.img ? `<img src="${l.img}" alt="" style="display:block;width:110px;margin-top:6px">` : ''}</td>${l.desc ? `<td class="desc">${esc(l.desc).replace(/\n/g, '<br>')}</td>` : ''}<td>${esc(l.unit)}</td><td class="r">${vnd(l.price)}</td><td class="r">${l.qty}</td><td class="r">${vnd(l.total)}</td><td class="r">${l.disc ? vnd(l.disc) : '0'}</td>${gf[i] === null ? '' : gf[i].span > 1 ? `<td class="r" rowspan="${gf[i].span}" style="vertical-align:middle;color:#111;font-weight:bold">${vnd(gf[i].sum)}</td>` : `<td class="r">${l.gift ? 'Tặng' : vnd(l.total - l.disc)}</td>`}</tr>`).join(''); };
+  const rows = lines => { const gf = groupFinals(lines); return lines.map((l, i) => `<tr class="${l.gift ? 'gift' : ''}"><td${l.desc ? ' style="text-align:center;vertical-align:middle"' : ' colspan="2"'}><b>${esc(l.name)}</b>${l.sub ? `<div class="s">${esc(l.sub)}</div>` : ''}${l.img ? `<img src="${l.img}" alt="" style="display:block;width:110px;margin-top:6px">` : ''}</td>${l.desc ? `<td class="desc">${esc(l.desc).replace(/\n/g, '<br>')}</td>` : ''}<td>${esc(l.unit)}</td><td class="r">${vnd(l.price)}</td><td class="r">${vnd(l.qty)}</td><td class="r">${vnd(l.total)}</td><td class="r">${l.disc ? vnd(l.disc) : '0'}</td>${gf[i] === null ? '' : gf[i].span > 1 ? `<td class="r" rowspan="${gf[i].span}" style="vertical-align:middle;color:#111;font-weight:bold">${vnd(gf[i].sum)}</td>` : `<td class="r">${l.gift ? 'Tặng' : vnd(l.total - l.disc)}</td>`}</tr>`).join(''); };
   const sec = (t, lines, s, lb) => lines.length ? `<tr class="sec"><td colspan="8">${esc(t)}</td></tr>${rows(lines)}<tr class="sum"><td colspan="5">Tổng tiền trước giảm giá / Giảm giá / Thành tiền ${lb}</td><td class="r">${vnd(s.total)}</td><td class="r">${vnd(s.disc)}</td><td class="r">${vnd(s.final)}</td></tr>` : '';
   const P = scope ? scope + ' ' : '', ROOT = scope || 'body';
   const css = `body{font-family:Inter,Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:24px}h1{text-align:center;font-size:20px;margin:16px 0;color:#005DA4}
@@ -1246,7 +1246,7 @@ async function buildPdf() {
     margin: { left: M, right: M, top: 10, bottom: 12 }, theme: 'grid', rowPageBreak: 'avoid', head: HEAD, body,
     styles: { font: 'Inter', fontSize: 8, cellPadding: 1.6, lineColor: [181, 190, 201], lineWidth: 0.2, textColor: INK, valign: 'top', overflow: 'linebreak' },
     headStyles: { fillColor: BLUE, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', valign: 'middle' },
-    columnStyles: { 0: { cellWidth: 36 }, 1: { cellWidth: 48 }, 2: { cellWidth: 18, halign: 'center' }, 3: { cellWidth: 19, halign: 'right' }, 4: { cellWidth: 9, halign: 'center' }, 5: { cellWidth: 21, halign: 'right' }, 6: { cellWidth: 20, halign: 'right' }, 7: { cellWidth: 23, halign: 'right' } },
+    columnStyles: { 0: { cellWidth: 36 }, 1: { cellWidth: 43 }, 2: { cellWidth: 18, halign: 'center' }, 3: { cellWidth: 19, halign: 'right' }, 4: { cellWidth: 14, halign: 'center' }, 5: { cellWidth: 21, halign: 'right' }, 6: { cellWidth: 20, halign: 'right' }, 7: { cellWidth: 23, halign: 'right' } },
     didDrawCell: d => {
       const r = d.cell.raw;
       if (d.section === 'body' && r && r._img) { const s = 22; d.doc.addImage(r._img, 'JPEG', d.cell.x + (d.cell.width - s) / 2, d.cell.y + d.cell.height - s - 2, s, s); }
@@ -1264,7 +1264,7 @@ async function buildPdf() {
       const row = [name];
       if (l.desc) row.push({ content: l.desc.split('\n').map(t => '• ' + t.replace(/^1\.\d+: /, '')).join('\n'), styles: { fontSize: 7.2, textColor: [51, 51, 51] } });
       else name.colSpan = 2;
-      row.push(l.unit, vnd(l.price), String(l.qty), vnd(l.total), { content: l.disc ? vnd(l.disc) : '0', styles: { textColor: l.disc ? GIFT : INK } });
+      row.push(l.unit, vnd(l.price), vnd(l.qty), vnd(l.total), { content: l.disc ? vnd(l.disc) : '0', styles: { textColor: l.disc ? GIFT : INK } });
       if (gf[i] === null) { /* ô Thành tiền đã gộp ở dòng trên */ }
       else if (gf[i].span > 1) row.push({ content: vnd(gf[i].sum), rowSpan: gf[i].span, styles: { fontStyle: 'bold', valign: 'middle' } });
       else row.push({ content: l.gift ? 'Tặng' : vnd(l.total - l.disc), styles: { fontStyle: 'bold', textColor: tc } });
@@ -1324,7 +1324,7 @@ $('btn-xlsx').onclick = async () => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Báo giá', { pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } }, views: [{ showGridLines: false }] });
   // Độ rộng cột cố định: A Tên | B Thông tin | C Đơn vị | D Đơn giá | E SL | F Tổng tiền | G Giảm giá | H Thành tiền
-  const W = [30, 58, 11, 13, 6, 14, 13, 15], WALL = W.reduce((a, b) => a + b, 0);
+  const W = [30, 54, 11, 13, 10, 14, 13, 15], WALL = W.reduce((a, b) => a + b, 0);
   ws.columns = W.map(width => ({ width }));
   const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
   const head = fill('FF005DA4'), light = fill('FFE8F1F9'), grey = fill('FFF3F5F7'), yellow = fill('FFFFF2E6');
@@ -1393,7 +1393,7 @@ $('btn-xlsx').onclick = async () => {
       for (let k = 1; k <= 8; k++) {
         const x = r.getCell(k); x.border = border;
         x.alignment = { vertical: 'middle', wrapText: true, horizontal: k >= 4 ? (k === 5 ? 'center' : 'right') : (k === 3 ? 'center' : 'left') };
-        if (k >= 4 && k !== 5) x.numFmt = NF;
+        if (k >= 4) x.numFmt = NF;
       }
       r.getCell(1).font = { bold: true, color: l.gift ? { argb: 'FFC2410C' } : undefined };
       if (!l.desc) merge(r.number, 1, 2);
