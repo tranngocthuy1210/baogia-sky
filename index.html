@@ -289,6 +289,7 @@ textarea.copybox{width:100%;height:170px;font-family:ui-monospace,Consolas,monos
     <div class="grp" id="g-fx"></div>
     <div class="grp" id="g-hw"></div>
     <div class="grp" id="g-soft"></div>
+    <div class="grp" id="g-dep"></div>
   </aside>
 
   <section class="doc-col" id="quote" aria-label="Form báo giá">
@@ -542,11 +543,11 @@ const today = () => new Date().toISOString().slice(0, 10);
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, fx: false, fxGift: '',
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, fx: false, fxGift: '', dep: { on: false, price: 0, days: 1, note: '' },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
-try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0); } } catch (e) {}
+try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: 0, days: 1, note: '' }, S.dep || {}); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0); } } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
 /* ---------- Tính tiền ---------- */
@@ -584,6 +585,12 @@ function fxLines() {
   }
   return out;
 }
+// Chi phí triển khai: đơn giá/ngày do NVKD tự nhập, nhân số ngày
+function depLines() {
+  const d = S.dep;
+  if (!d || !d.on || !(d.price > 0)) return [];
+  return [L({ name: 'Chi phí triển khai', sub: d.note || '', unit: 'ngày', price: d.price, qty: Math.max(1, d.days | 0) })];
+}
 function build() {
   const A = [], B = [], C = [];
   if (S.combo) {
@@ -597,18 +604,19 @@ function build() {
   HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0), l.total); B.push(l); } });
   if (S.ivt && IVT[S.ivt]) ivtLines(S.ivt, S.ivtTerm).forEach(l => C.push(L(l)));
   if (S.hr && HR[S.hr]) hrLines(S.hr, S.hrTerm).forEach(l => C.push(L(l)));
+  const D = depLines();
   const sum = arr => { const s = arr.reduce((a, l) => ({ total: a.total + l.total, disc: a.disc + l.disc }), { total: 0, disc: 0 }); s.final = s.total - s.disc; return s; };
-  const sA = sum(A), sB = sum(B), sC = sum(C);
-  return { A, B, C, sA, sB, sC, total: sA.total + sB.total + sC.total, grand: sA.final + sB.final + sC.final, saved: sA.disc + sB.disc + sC.disc };
+  const sA = sum(A), sB = sum(B), sC = sum(C), sD = sum(D);
+  return { A, B, C, D, sA, sB, sC, sD, total: sA.total + sB.total + sC.total + sD.total, grand: sA.final + sB.final + sC.final + sD.final, saved: sA.disc + sB.disc + sC.disc + sD.disc };
 }
 const comboPrice = hddt => comboLines(hddt).reduce((a, l) => a + l.total - l.disc, 0);
 const titleA = () => !S.combo ? `PHẦN MỀM FABi ${12 + (S.pSwitch ? 6 : 0) + fxMonths()} THÁNG`
   : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '');
 // Các mục lớn đánh chữ theo thứ tự chỉ trên những mục có sản phẩm (bỏ B thì C thành B)
 function sections(q) {
-  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['PHẦN MỀM BỔ SUNG', q.C, q.sC]]
+  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ TRIỂN KHAI', q.D, q.sD]]
     .filter(([, lines]) => lines.length)
-    .map(([t, lines, s], i) => { const L = 'ABC'[i]; return { title: `${L} - ${t}`, lines, s, lb: `(${L})` }; });
+    .map(([t, lines, s], i) => { const L = 'ABCD'[i]; return { title: `${L} - ${t}`, lines, s, lb: `(${L})` }; });
 }
 // Không lấy combo: chỉ thuê bao FABi 12 tháng + phí khởi tạo, không giảm giá
 function softOnlyLines() {
@@ -759,7 +767,7 @@ function secHTML(title, lines, s, lb) {
 }
 function renderDoc() {
   const q = build(), c = S.c;
-  const any = q.A.length + q.B.length + q.C.length;
+  const any = q.A.length + q.B.length + q.C.length + q.D.length;
   const secs = sections(q), parts = secs.map(x => x.lb).join(' + ');
   $('no-view').textContent = 'Số ' + (c.so || '—');
   $('date-view').textContent = 'Ngày ' + (fmtDate(c.ngay) || '—');
@@ -775,7 +783,22 @@ function renderDoc() {
   $('m-sub').textContent = q.saved ? `Tiết kiệm ${vnd(q.saved)}đ` : 'Tổng giá trị hợp đồng';
 }
 
-function update() { save(); renderCombo(); renderFx(); renderHW(); renderSoft(); renderDoc(); }
+function renderDep() {
+  const d = S.dep, days = Math.max(1, d.days | 0), tot = d.price * days;
+  const head = grpHead('dep', 'Chi phí triển khai', 'Tính theo ngày', d.on ? (d.price > 0 ? `${days} ngày · ${vnd(tot)}` : 'Chưa nhập đơn giá') : 'Chưa chọn');
+  if (folded('dep')) { $('g-dep').innerHTML = head; return; }
+  $('g-dep').innerHTML = `${head}
+    <div class="pi${d.on ? ' on' : ''}"><button type="button" class="pi-m" data-dep aria-pressed="${d.on}">
+      ${mark()}<span class="pi-t"><b>Thêm chi phí triển khai</b><small>Nhập đơn giá mỗi ngày và số ngày triển khai</small></span>
+      <span class="pi-p" id="dep-total">${d.on && d.price > 0 ? vnd(tot) : '—'}<small>${days} ngày</small></span></button>
+      ${d.on ? `<div class="pi-x">
+        <div class="ctl"><label for="dep-price">Đơn giá / ngày (đ)</label><input class="inp-s" id="dep-price" data-depf="price" value="${d.price ? vnd(d.price) : ''}" inputmode="numeric" placeholder="VD: 1.000.000"></div>
+        <div class="ctl"><span>Số ngày</span><span class="qty"><button type="button" data-depd="-1" aria-label="Giảm số ngày">−</button><input id="dep-days" data-depf="days" value="${days}" inputmode="numeric" aria-label="Số ngày triển khai"><button type="button" data-depd="1" aria-label="Tăng số ngày">+</button></span></div>
+        <div class="ctl"><label for="dep-note">Ghi chú</label><input class="inp-s" id="dep-note" data-depf="note" value="${esc(d.note)}" placeholder="VD: Triển khai tại Đà Nẵng" style="width:190px;text-align:left"></div>
+        ${d.price > 0 ? '' : '<div class="warn">Nhập đơn giá mỗi ngày để đưa vào báo giá</div>'}
+      </div>` : ''}</div>`;
+}
+function update() { save(); renderCombo(); renderFx(); renderHW(); renderSoft(); renderDep(); renderDoc(); }
 
 /* ---------- Sự kiện ---------- */
 document.querySelector('.catalog').addEventListener('click', e => {
@@ -794,6 +817,21 @@ $('g-combo').addEventListener('change', e => {
   if (e.target.id === 'p-switch') S.pSwitch = e.target.checked;
   update();
 });
+$('g-dep').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.hasAttribute('data-dep')) { S.dep.on = !S.dep.on; update(); if (S.dep.on && !S.dep.price) $('dep-price')?.focus(); }
+  else if (b.dataset.depd) { S.dep.days = Math.max(1, (S.dep.days | 0) + (+b.dataset.depd)); update(); }
+});
+// Gõ số không vẽ lại danh sách (giữ con trỏ), chỉ cập nhật bảng báo giá và tổng ở dòng trên
+$('g-dep').addEventListener('input', e => {
+  const t = e.target, f = t.dataset.depf; if (!f) return;
+  if (f === 'note') S.dep.note = t.value;
+  else S.dep[f] = parseInt(t.value.replace(/\D/g, '')) || (f === 'days' ? 1 : 0);
+  const days = Math.max(1, S.dep.days | 0), tot = $('dep-total');
+  if (tot) tot.innerHTML = `${S.dep.price > 0 ? vnd(S.dep.price * days) : '—'}<small>${days} ngày</small>`;
+  save(); renderDoc();
+});
+$('g-dep').addEventListener('change', e => { if (e.target.dataset.depf) update(); });
 $('g-fx').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.hasAttribute('data-fx')) { S.fx = !S.fx; if (!S.fx) S.fxGift = ''; update(); }
@@ -890,6 +928,7 @@ function plainText() {
     out.push(`• Chấm công ${HR[S.hr].name} – ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} cửa hàng` : ''}: ${priceLine(t, f)}`);
   }
 
+  q.D.forEach(l => out.push(`• Chi phí triển khai (${l.qty} ngày${l.sub ? ', ' + l.sub : ''}): ${money(l.total)}`));
   out.push('', `TỔNG THANH TOÁN: ${money(q.grand)}`);
   if (q.saved) out.push(`Tiết kiệm: ${money(q.saved)}`);
   out.push('', `Liên hệ: ${c.nvkd}${c.nvsdt ? ' – ' + c.nvsdt : ''}`);
