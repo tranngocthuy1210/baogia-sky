@@ -685,7 +685,7 @@ const nfmt = n => n.toLocaleString('vi-VN');
 function invoiceLines() {
   const e = S.einv, out = [];
   if (e.pkg === 0) {
-    if (e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice I-KHÁC', desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'), unit: 'hóa đơn', price: e.cp, qty: e.cq }));
+    if (e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice', desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'), unit: 'hóa đơn', price: e.cp, qty: e.cq }));
   } else {
   const pk = EINV_PKGS.find(x => x[0] === e.pkg) || EINV_PKGS[2];
   out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`,
