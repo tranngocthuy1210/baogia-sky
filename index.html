@@ -577,6 +577,7 @@ let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: 0, days: 1, note: '' }, S.dep || {}); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0); } } catch (e) {}
 // Mỗi lần mở trang: ngày gửi = hôm nay, số báo giá tự sinh theo ngày (nếu chưa sửa tay)
 if (S.c.ngay !== today()) { S.c.ngay = today(); if (/^\d{8}\|iPOS$/.test(S.c.so)) S.c.so = quoteNo(); }
+if (S.line === 'box' && S.ivt === 'prokho') S.ivt = '';
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
 /* ---------- Tính tiền ---------- */
@@ -818,7 +819,7 @@ function renderSoft() {
   if (folded('soft')) { $('g-soft').innerHTML = head; return; }
   $('g-soft').innerHTML = `${head}
     ${grpHead('ivt', 'Quản lý kho · chọn 1 gói', '', S.ivt ? `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''} · ${vnd(ivtTotal(S.ivt, S.ivtTerm))}` : 'Chưa chọn')}
-    ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['', 'plus', 'pro', 'prokho'].map(ivtRow).join('')}</div>`}
+    ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['', 'plus', 'pro', ...(isBox() ? [] : ['prokho'])].map(ivtRow).join('')}</div>`}
     ${grpHead('hr', 'Chấm công iPOS HRM · chọn 1 gói', '', S.hr ? `${HR[S.hr].name.replace('iPOS HRM · ', '')} ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} CH` : ''} · ${vnd(hrTotal(S.hr, S.hrTerm))}` : 'Chưa chọn', true)}
     ${folded('hr') ? '' : `<div role="radiogroup" aria-label="Gói chấm công">${['', ...Object.keys(HR)].map(hrRow).join('')}</div>`}`;
 }
@@ -892,7 +893,7 @@ document.querySelector('.catalog').addEventListener('click', e => {
 });
 $('g-combo').addEventListener('click', e => {
   const ps = e.target.closest('[data-pos]'); if (ps) { S.pos = ps.dataset.pos; update(); return; }
-  const ln = e.target.closest('[data-line]'); if (ln) { S.line = ln.dataset.line; update(); return; }
+  const ln = e.target.closest('[data-line]'); if (ln) { S.line = ln.dataset.line; if (isBox() && S.ivt === 'prokho') S.ivt = ''; update(); return; }
   const b = e.target.closest('[data-plan]'); if (!b) return;
   if (b.dataset.plan === 'bc' || b.dataset.plan === 'bs') { S.boxCombo = b.dataset.plan === 'bc'; update(); return; }
   const k = b.dataset.plan;
