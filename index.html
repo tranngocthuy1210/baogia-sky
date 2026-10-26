@@ -559,6 +559,8 @@ function fresh() {
 }
 let S = fresh();
 try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: 0, days: 1, note: '' }, S.dep || {}); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0); } } catch (e) {}
+// Mỗi lần mở trang: ngày gửi = hôm nay, số báo giá tự sinh theo ngày (nếu chưa sửa tay)
+if (S.c.ngay !== today()) { S.c.ngay = today(); if (/^\d{8}\|iPOS$/.test(S.c.so)) S.c.so = quoteNo(); }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
 /* ---------- Tính tiền ---------- */
