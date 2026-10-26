@@ -157,6 +157,13 @@ h1,h2,.doc h2.title{font-variation-settings:"opsz" 32}
 .incl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink-2)}
 .incl li{display:flex;gap:6px;align-items:flex-start}
 .incl svg{flex:none;margin-top:3px;color:var(--promo)}
+.cks{margin:0 4px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--sunken);display:flex;flex-direction:column;gap:8px}
+.cks-row{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:8px}
+.cks-l{font-size:12px;font-weight:600;color:var(--ink-3)}
+.cks .tabs{padding:0}
+.cks .terms{margin:0}
+.cks-note{margin:0;font-size:12px;color:var(--ink-3)}
+@media (max-width:420px){.cks-row{grid-template-columns:minmax(0,1fr)}}
 .terms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .terms.gifts{grid-template-columns:repeat(2,minmax(0,1fr))}
 .term{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 8px;border:1.5px solid var(--line);border-radius:var(--r-sm);background:var(--surface);text-align:left;min-width:0}
@@ -770,8 +777,16 @@ function renderCombo() {
       </div>` : ''}
       <label class="promo${e.fresh ? ' on' : ''}" for="einv-fresh" style="margin:0 4px 12px"><span class="tx"><b>Khách hàng mua mới · +${vnd(EINV_SETUP)}</b><span>Tính phí khởi tạo; tắt nếu khách gia hạn</span></span><input type="checkbox" class="switch" id="einv-fresh" ${e.fresh ? 'checked' : ''}></label>
       <div class="grp-t">Chữ ký số HILO <span>Đã gồm VAT</span></div>
-      ${grid([['', 'Không dùng', '', null], ...Object.entries(CKS).map(([k, v]) => [k, v.label, '', v.p[e.cksY] || v.p[1]])], 'data-einv-cks', e.cks)}
-      ${cksSel ? `<div class="terms" style="margin:0 4px 12px" role="radiogroup" aria-label="Thời hạn chữ ký số">${[1, 2, 3].map(y => `<button type="button" class="term${+e.cksY === y ? ' on' : ''}" data-einv-y="${y}" role="radio" aria-checked="${+e.cksY === y}"><b>${y} năm</b><span class="money">${vnd(cksSel.p[y])}</span></button>`).join('')}</div>` : ''}
+      ${(() => {
+        const [type, mode] = (e.cks || '').split('-');
+        const pills = (items, attr, cur) => `<div class="tabs">${items.map(([v, t]) => `<button type="button" class="tab" ${attr}="${v}" aria-selected="${v === cur}">${t}</button>`).join('')}</div>`;
+        return `<div class="cks">
+          <div class="cks-row"><span class="cks-l">Loại</span>${pills([['', 'Không dùng'], ['usb', 'USB Token'], ['hsm', 'Cloud HSM']], 'data-cks-type', type || '')}</div>
+          ${type ? `<div class="cks-row"><span class="cks-l">Hình thức</span>${pills([['new', 'Đăng ký mới'], ['renew', 'Gia hạn']], 'data-cks-mode', mode || 'new')}</div>
+          <div class="cks-row"><span class="cks-l">Thời hạn</span><div class="terms" role="radiogroup" aria-label="Thời hạn chữ ký số">${[1, 2, 3].map(y => `<button type="button" class="term${+e.cksY === y ? ' on' : ''}" data-einv-y="${y}" role="radio" aria-checked="${+e.cksY === y}"><b>${y} năm</b><span class="money">${vnd(cksSel.p[y])}</span></button>`).join('')}</div></div>
+          ${type === 'hsm' ? '<p class="cks-note">Ký số không giới hạn số người ký và số lượng hóa đơn</p>' : ''}` : ''}
+        </div>`;
+      })()}
       <div class="grp-t">Quản lý hóa đơn đầu vào <span>Tặng 100% · miễn phí khởi tạo</span></div>
       ${grid([[0, 'Không dùng', '', null], ...EINV_INPUT.map(([n, pr]) => [n, 'Gói ' + nfmt(n), `tặng thêm ${nfmt(n)}`, pr])], 'data-einv-inp', e.inp)}`;
     return;
@@ -959,6 +974,13 @@ document.querySelector('.catalog').addEventListener('click', e => {
 });
 $('g-combo').addEventListener('click', e => {
   const ps = e.target.closest('[data-pos]'); if (ps) { S.pos = ps.dataset.pos; update(); return; }
+  const ck = e.target.closest('[data-cks-type],[data-cks-mode]');
+  if (ck) {
+    const [type, mode] = (S.einv.cks || '').split('-');
+    if (ck.dataset.cksType != null) S.einv.cks = ck.dataset.cksType ? `${ck.dataset.cksType}-${mode || 'new'}` : '';
+    else if (type) S.einv.cks = `${type}-${ck.dataset.cksMode}`;
+    update(); return;
+  }
   const ev = e.target.closest('[data-einv-pkg],[data-einv-cks],[data-einv-y],[data-einv-inp]');
   if (ev) {
     const d = ev.dataset;
