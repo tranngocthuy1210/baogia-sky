@@ -243,6 +243,7 @@ td.c,td.r{white-space:nowrap;width:1%}
 /* Khi ẩn cột thông tin: chia lại tỉ lệ cột cho cân */
 .hide-spec td.c,.hide-spec td.r{width:auto}
 .hide-spec th.w-name{width:34%}.hide-spec th.w-unit{width:9%}.hide-spec th.w-price{width:11%}.hide-spec th.w-qty{width:6%}
+.nd .w-disc{display:none}
 .hide-spec th.w-tot{width:13%}.hide-spec th.w-disc{width:13%}.hide-spec th.w-fin{width:14%}
 .hide-spec td.has-img{text-align:left}.hide-spec td.has-img .sb{text-align:left}.hide-spec td .thumb{margin-left:0}
 td.c{vertical-align:top}
@@ -664,6 +665,8 @@ function boxLines(combo = S.boxCombo) {
 const boxPrice = combo => boxLines(combo).reduce((a, l) => a + l.total - l.disc, 0);
 const isBox = () => S.line === 'box';
 const isInv = () => S.line === 'inv';
+const noDisc = () => isInv(); // tab iPOS Invoice không có giảm giá → ẩn cột Giảm giá
+const subtLabel = () => noDisc() ? 'Tổng tiền / Thành tiền ' : 'Tổng tiền trước giảm giá / Giảm giá / Thành tiền ';
 /* iPOS Invoice – chính sách bán hàng tháng 10/2026 */
 const EINV_PKGS = [[2000, 290], [5000, 180], [10000, 160], [20000, 145], [30000, 130], [50000, 120], [100000, 110], [200000, 105], [300000, 100], [500000, 90], [1000000, 80]];
 const EINV_SETUP = 500000;
@@ -925,13 +928,14 @@ function rowsHTML(lines) {
     <td${!l.desc && S.spec ? ' colspan="2"' : ''}${l.img ? ' class="has-img"' : (l.desc && S.spec ? ' class="has-desc"' : '')}><span class="nm">${esc(l.name)}</span>${l.sub ? `<span class="sb">${esc(l.sub)}</span>` : ''}${l.img ? `<img class="thumb" src="${l.img}" alt="${esc(l.name)}" width="96" height="96">` : ''}</td>
     ${S.spec && l.desc ? `<td class="spec"><ul>${l.desc.split('\n').map(s => `<li>${esc(s.replace(/^1\.\d+: /, ''))}</li>`).join('')}</ul></td>` : ''}
     <td class="c">${esc(l.unit)}</td><td class="r">${vnd(l.price)}</td><td class="c">${vnd(l.qty)}</td>
-    <td class="r">${vnd(l.total)}</td><td class="r dc">${l.disc ? '−' + vnd(l.disc) : '0'}</td>
+    <td class="r">${vnd(l.total)}</td>${noDisc() ? '' : `<td class="r dc">${l.disc ? '−' + vnd(l.disc) : '0'}</td>`}
     ${gf[i] === null ? '' : gf[i].span > 1 ? `<td class="r fin money grp-fin" rowspan="${gf[i].span}">${vnd(gf[i].sum)}</td>` : `<td class="r fin money">${l.gift ? 'Tặng' : vnd(l.total - l.disc)}</td>`}</tr>`).join('');
 }
 function secHTML(title, lines, s, lb) {
   if (!lines.length) return '';
-  return `<tr class="sec"><td colspan="${S.spec ? 8 : 7}">${esc(title)}</td></tr>${rowsHTML(lines)}
-    <tr class="subt"><td colspan="${S.spec ? 5 : 4}">Tổng tiền trước giảm giá / Giảm giá / Thành tiền ${lb}</td><td class="r">${vnd(s.total)}</td><td class="r dc">${s.disc ? '−' + vnd(s.disc) : '0'}</td><td class="r">${vnd(s.final)}</td></tr>`;
+  const nd = noDisc() ? 1 : 0;
+  return `<tr class="sec"><td colspan="${(S.spec ? 8 : 7) - nd}">${esc(title)}</td></tr>${rowsHTML(lines)}
+    <tr class="subt"><td colspan="${S.spec ? 5 : 4}">${subtLabel()}${lb}</td><td class="r">${vnd(s.total)}</td>${nd ? '' : `<td class="r dc">${s.disc ? '−' + vnd(s.disc) : '0'}</td>`}<td class="r">${vnd(s.final)}</td></tr>`;
 }
 function renderDoc() {
   const q = build(), c = S.c;
@@ -939,10 +943,12 @@ function renderDoc() {
   const secs = sections(q), parts = secs.map(x => x.lb).join(' + ');
   $('no-view').textContent = 'Số ' + (c.so || '—');
   $('date-view').textContent = 'Ngày ' + (fmtDate(c.ngay) || '—');
+  const nd = noDisc() ? 1 : 0;
+  $('tw').classList.toggle('nd', !!nd);
   $('tbody').innerHTML = any
     ? secs.map(x => secHTML(x.title, x.lines, x.s, x.lb)).join('')
-      + `<tr class="grand"><td colspan="${S.spec ? 7 : 6}">Tổng giá trị hợp đồng ${parts}</td><td class="r money">${vnd(q.grand)}</td></tr>`
-    : `<tr class="empty"><td colspan="${S.spec ? 8 : 7}">Chưa có sản phẩm. Chọn sản phẩm trong danh sách để thêm vào báo giá.</td></tr>`;
+      + `<tr class="grand"><td colspan="${(S.spec ? 7 : 6) - nd}">Tổng giá trị hợp đồng ${parts}</td><td class="r money">${vnd(q.grand)}</td></tr>`
+    : `<tr class="empty"><td colspan="${(S.spec ? 8 : 7) - nd}">Chưa có sản phẩm. Chọn sản phẩm trong danh sách để thêm vào báo giá.</td></tr>`;
   $('notes').innerHTML = notesList().map(n => `<li>${n}</li>`).join('');
   $('save').textContent = q.saved ? `Khách tiết kiệm ${vnd(q.saved)}đ nhờ chương trình khuyến mãi` : '';
   $('tw').classList.toggle('hide-spec', !S.spec);
@@ -1158,8 +1164,9 @@ async function offer(filename, data) {
 
 function quoteParts(scope) {
   const q = build(), c = S.c;
-  const rows = lines => { const gf = groupFinals(lines); return lines.map((l, i) => `<tr class="${l.gift ? 'gift' : ''}"><td${l.desc ? ' style="text-align:center;vertical-align:middle"' : ' colspan="2"'}><b>${esc(l.name)}</b>${l.sub ? `<div class="s">${esc(l.sub)}</div>` : ''}${l.img ? `<img src="${l.img}" alt="" style="display:block;width:110px;margin-top:6px">` : ''}</td>${l.desc ? `<td class="desc">${esc(l.desc).replace(/\n/g, '<br>')}</td>` : ''}<td>${esc(l.unit)}</td><td class="r">${vnd(l.price)}</td><td class="r">${vnd(l.qty)}</td><td class="r">${vnd(l.total)}</td><td class="r">${l.disc ? vnd(l.disc) : '0'}</td>${gf[i] === null ? '' : gf[i].span > 1 ? `<td class="r" rowspan="${gf[i].span}" style="vertical-align:middle;color:#111;font-weight:bold">${vnd(gf[i].sum)}</td>` : `<td class="r">${l.gift ? 'Tặng' : vnd(l.total - l.disc)}</td>`}</tr>`).join(''); };
-  const sec = (t, lines, s, lb) => lines.length ? `<tr class="sec"><td colspan="8">${esc(t)}</td></tr>${rows(lines)}<tr class="sum"><td colspan="5">Tổng tiền trước giảm giá / Giảm giá / Thành tiền ${lb}</td><td class="r">${vnd(s.total)}</td><td class="r">${vnd(s.disc)}</td><td class="r">${vnd(s.final)}</td></tr>` : '';
+  const nd = noDisc() ? 1 : 0;
+  const rows = lines => { const gf = groupFinals(lines); return lines.map((l, i) => `<tr class="${l.gift ? 'gift' : ''}"><td${l.desc ? ' style="text-align:center;vertical-align:middle"' : ' colspan="2"'}><b>${esc(l.name)}</b>${l.sub ? `<div class="s">${esc(l.sub)}</div>` : ''}${l.img ? `<img src="${l.img}" alt="" style="display:block;width:110px;margin-top:6px">` : ''}</td>${l.desc ? `<td class="desc">${esc(l.desc).replace(/\n/g, '<br>')}</td>` : ''}<td>${esc(l.unit)}</td><td class="r">${vnd(l.price)}</td><td class="r">${vnd(l.qty)}</td><td class="r">${vnd(l.total)}</td>${nd ? '' : `<td class="r">${l.disc ? vnd(l.disc) : '0'}</td>`}${gf[i] === null ? '' : gf[i].span > 1 ? `<td class="r" rowspan="${gf[i].span}" style="vertical-align:middle;color:#111;font-weight:bold">${vnd(gf[i].sum)}</td>` : `<td class="r">${l.gift ? 'Tặng' : vnd(l.total - l.disc)}</td>`}</tr>`).join(''); };
+  const sec = (t, lines, s, lb) => lines.length ? `<tr class="sec"><td colspan="${8 - nd}">${esc(t)}</td></tr>${rows(lines)}<tr class="sum"><td colspan="5">${subtLabel()}${lb}</td><td class="r">${vnd(s.total)}</td>${nd ? '' : `<td class="r">${vnd(s.disc)}</td>`}<td class="r">${vnd(s.final)}</td></tr>` : '';
   const P = scope ? scope + ' ' : '', ROOT = scope || 'body';
   const css = `body{font-family:Inter,Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:24px}h1{text-align:center;font-size:20px;margin:16px 0;color:#005DA4}
 .co b{font-size:15px}.co div{margin:2px 0}.info{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:12px 0}
@@ -1172,9 +1179,9 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #b5bec9;padding
 <h1>BÁO GIÁ SẢN PHẨM</h1>
 <div class="clients"><div class="cl-t">Khách hàng tiêu biểu đang sử dụng giải pháp iPOS.vn</div>${clientsHTML()}</div>
 <div class="info"><div>Tên KH: <b>${esc(c.ten)}</b></div><div>Số báo giá: ${esc(c.so)}</div><div>SĐT: ${esc(c.sdt)}</div><div>Ngày gửi: ${fmtDate(c.ngay)}</div><div>Tên mô hình: ${esc(c.mohinh)}</div><div>NVKD: ${esc(c.nvkd)}</div><div>Địa chỉ: ${esc(c.diachi)}</div><div>SĐT: ${esc(c.nvsdt)}</div></div>
-<table><thead><tr><th>Tên sản phẩm</th><th>Thông tin sản phẩm</th><th>Đơn vị</th><th>Đơn giá</th><th>SL</th><th>Tổng tiền</th><th>Giảm giá</th><th>Thành tiền</th></tr></thead><tbody>
+<table><thead><tr><th>Tên sản phẩm</th><th>Thông tin sản phẩm</th><th>Đơn vị</th><th>Đơn giá</th><th>SL</th><th>Tổng tiền</th>${nd ? '' : '<th>Giảm giá</th>'}<th>Thành tiền</th></tr></thead><tbody>
 ${sections(q).map(x => sec(x.title, x.lines, x.s, x.lb)).join('')}
-<tr class="grand"><td colspan="7">Tổng giá trị hợp đồng</td><td class="r">${vnd(q.grand)}</td></tr></tbody></table>
+<tr class="grand"><td colspan="${7 - nd}">Tổng giá trị hợp đồng</td><td class="r">${vnd(q.grand)}</td></tr></tbody></table>
 <div class="note"><div class="nt"><b>* Ghi chú:</b></div>${notesList().map(n => `<div class="nt">- ${n}</div>`).join('')}</div>`;
   return { css, body };
 }
@@ -1241,12 +1248,15 @@ async function buildPdf() {
 
   // Bảng báo giá: mỗi mục (A/B/C) là 1 bảng; mục nào không đủ chỗ thì sang trang mới để tiêu đề mục không bị tách khỏi nội dung
   const light = [232, 241, 249], sub = [243, 245, 247], gold = [255, 242, 230];
-  const HEAD = [['Tên sản phẩm', 'Thông tin sản phẩm', 'Đơn vị', 'Đơn giá', 'SL', 'Tổng tiền', 'Giảm giá', 'Thành tiền']];
+  const nd = noDisc() ? 1 : 0;
+  const HEAD = [['Tên sản phẩm', 'Thông tin sản phẩm', 'Đơn vị', 'Đơn giá', 'SL', 'Tổng tiền', ...(nd ? [] : ['Giảm giá']), 'Thành tiền']];
+  // bỏ cột Giảm giá thì cộng phần rộng đó vào cột Thông tin sản phẩm
+  const CWS = nd ? [36, 63, 18, 19, 14, 21, 23] : [36, 43, 18, 19, 14, 21, 20, 23];
   const table = (body, opts) => doc.autoTable(Object.assign({
     margin: { left: M, right: M, top: 10, bottom: 12 }, theme: 'grid', rowPageBreak: 'avoid', head: HEAD, body,
     styles: { font: 'Inter', fontSize: 8, cellPadding: 1.6, lineColor: [181, 190, 201], lineWidth: 0.2, textColor: INK, valign: 'top', overflow: 'linebreak' },
     headStyles: { fillColor: BLUE, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', valign: 'middle' },
-    columnStyles: { 0: { cellWidth: 36 }, 1: { cellWidth: 43 }, 2: { cellWidth: 18, halign: 'center' }, 3: { cellWidth: 19, halign: 'right' }, 4: { cellWidth: 14, halign: 'center' }, 5: { cellWidth: 21, halign: 'right' }, 6: { cellWidth: 20, halign: 'right' }, 7: { cellWidth: 23, halign: 'right' } },
+    columnStyles: Object.fromEntries(CWS.map((w, i) => [i, { cellWidth: w, halign: i === 2 || i === 4 ? 'center' : i >= 3 ? 'right' : undefined }])),
     didDrawCell: d => {
       const r = d.cell.raw;
       if (d.section === 'body' && r && r._img) { const s = 22; d.doc.addImage(r._img, 'JPEG', d.cell.x + (d.cell.width - s) / 2, d.cell.y + d.cell.height - s - 2, s, s); }
@@ -1254,7 +1264,7 @@ async function buildPdf() {
   }, opts));
   let ty = y;
   sections(q).forEach((sec, si) => {
-    const body = [[{ content: sec.title, colSpan: 8, styles: { fillColor: light, fontStyle: 'bold' } }]];
+    const body = [[{ content: sec.title, colSpan: 8 - nd, styles: { fillColor: light, fontStyle: 'bold' } }]];
     const gf = groupFinals(sec.lines);
     sec.lines.forEach((l, i) => {
       const tc = l.gift ? GIFT : INK;
@@ -1264,14 +1274,15 @@ async function buildPdf() {
       const row = [name];
       if (l.desc) row.push({ content: l.desc.split('\n').map(t => '• ' + t.replace(/^1\.\d+: /, '')).join('\n'), styles: { fontSize: 7.2, textColor: [51, 51, 51] } });
       else name.colSpan = 2;
-      row.push(l.unit, vnd(l.price), vnd(l.qty), vnd(l.total), { content: l.disc ? vnd(l.disc) : '0', styles: { textColor: l.disc ? GIFT : INK } });
+      row.push(l.unit, vnd(l.price), vnd(l.qty), vnd(l.total));
+      if (!nd) row.push({ content: l.disc ? vnd(l.disc) : '0', styles: { textColor: l.disc ? GIFT : INK } });
       if (gf[i] === null) { /* ô Thành tiền đã gộp ở dòng trên */ }
       else if (gf[i].span > 1) row.push({ content: vnd(gf[i].sum), rowSpan: gf[i].span, styles: { fontStyle: 'bold', valign: 'middle' } });
       else row.push({ content: l.gift ? 'Tặng' : vnd(l.total - l.disc), styles: { fontStyle: 'bold', textColor: tc } });
       body.push(row);
     });
-    body.push([{ content: `Tổng tiền trước giảm giá / Giảm giá / Thành tiền ${sec.lb}`, colSpan: 5, styles: { fontStyle: 'bold', fillColor: sub } },
-      ...[sec.s.total, sec.s.disc, sec.s.final].map(v => ({ content: vnd(v), styles: { fontStyle: 'bold', fillColor: sub } }))]);
+    body.push([{ content: `${subtLabel()}${sec.lb}`, colSpan: 5, styles: { fontStyle: 'bold', fillColor: sub } },
+      ...(nd ? [sec.s.total, sec.s.final] : [sec.s.total, sec.s.disc, sec.s.final]).map(v => ({ content: vnd(v), styles: { fontStyle: 'bold', fillColor: sub } }))]);
     // cần chỗ cho tiêu đề mục + ít nhất 1 dòng sản phẩm (~45mm); không đủ thì sang trang, kèm lại hàng tiêu đề cột
     let showHead = si === 0 ? 'firstPage' : 'never';
     if (si > 0 && PH - 12 - ty < 45) { doc.addPage(); ty = 10; showHead = 'firstPage'; }
@@ -1279,7 +1290,7 @@ async function buildPdf() {
     ty = doc.lastAutoTable.finalY;
   });
   if (PH - 12 - ty < 12) { doc.addPage(); ty = 10; }
-  table([[{ content: 'Tổng giá trị hợp đồng', colSpan: 7, styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } },
+  table([[{ content: 'Tổng giá trị hợp đồng', colSpan: 7 - nd, styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } },
     { content: vnd(q.grand), styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } }]], { startY: ty, showHead: 'never' });
 
   // Ghi chú: mỗi dòng xuống trang nguyên vẹn
@@ -1324,8 +1335,8 @@ $('btn-xlsx').onclick = async () => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Báo giá', { pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } }, views: [{ showGridLines: false }] });
   // Độ rộng cột cố định: A Tên | B Thông tin | C Đơn vị | D Đơn giá | E SL | F Tổng tiền | G Giảm giá | H Thành tiền
-  const W = [30, 54, 11, 13, 10, 14, 13, 15], WALL = W.reduce((a, b) => a + b, 0);
-  ws.columns = W.map(width => ({ width }));
+  const ND = noDisc(), W = ND ? [30, 67, 11, 13, 10, 14, 0, 15] : [30, 54, 11, 13, 10, 14, 13, 15], WALL = W.reduce((a, b) => a + b, 0);
+  ws.columns = W.map(width => width ? { width } : { width: 13, hidden: true });
   const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
   const head = fill('FF005DA4'), light = fill('FFE8F1F9'), grey = fill('FFF3F5F7'), yellow = fill('FFFFF2E6');
   const border = { top: { style: 'thin', color: { argb: 'FFB5BEC9' } }, left: { style: 'thin', color: { argb: 'FFB5BEC9' } }, bottom: { style: 'thin', color: { argb: 'FFB5BEC9' } }, right: { style: 'thin', color: { argb: 'FFB5BEC9' } } };
@@ -1355,7 +1366,7 @@ $('btn-xlsx').onclick = async () => {
     const strip = await clientsStripPng();
     const SW = 900, SH = Math.round(SW * strip.h / strip.w);
     const lr = ws.addRow([]); lr.height = Math.ceil(SH * 0.75) + 6;
-    const colPx = W.map(w => w * 7 + 5), totalPx = colPx.reduce((a, b) => a + b, 0);
+    const colPx = W.map(w => w ? w * 7 + 5 : 0), totalPx = colPx.reduce((a, b) => a + b, 0);
     const off = Math.max(0, (totalPx - SW) / 2);
     ws.addImage(wb.addImage({ base64: strip.url, extension: 'png' }), { tl: { col: off / colPx[0], row: lr.number - 1 + 0.04 }, ext: { width: SW, height: SH }, editAs: 'oneCell' });
   } catch (e) {}
@@ -1411,7 +1422,7 @@ $('btn-xlsx').onclick = async () => {
       if (l.gift && gf[i] && gf[i].span === 1) r.getCell(8).value = 'Tặng';
     });
     merges.forEach(([a, b]) => { ws.mergeCells(a, 8, b, 8); ws.getCell(a, 8).alignment = { vertical: 'middle', horizontal: 'right' }; });
-    const sr = ws.addRow(['Tổng tiền trước giảm giá / Giảm giá / Thành tiền ' + lb, '', '', '', '', s.total, s.disc, s.final]); sr.height = 20;
+    const sr = ws.addRow([subtLabel() + lb, '', '', '', '', s.total, s.disc, s.final]); sr.height = 20;
     merge(sr.number, 1, 5);
     for (let k = 1; k <= 8; k++) { const x = sr.getCell(k); x.fill = grey; x.font = { bold: true }; x.border = border; x.alignment = { vertical: 'middle', horizontal: k >= 6 ? 'right' : 'left' }; if (k >= 6) x.numFmt = NF; }
     ws.addRow([]).height = 8;
