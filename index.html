@@ -560,7 +560,7 @@ function ivtLines(k, term, n = S.ivtN || 1) {
   });
   if (n > 1) out.forEach(o => Object.assign(o, { unit: `gói ${paid} tháng`, price: o.price * paid, qty: o._f }));
   out.forEach(o => delete o._f);
-  if (v.deploy) out.push({ name: v.deploy.name, sub: 'Inventory Pro', desc: v.deploy.desc.join('\n'), unit: 'gói', price: v.deploy.price, qty: 1, grp: 'ivt' });
+  if (v.deploy) out.push({ name: v.deploy.name, sub: 'Inventory Pro', desc: v.deploy.desc.join('\n'), unit: n > 1 ? 'cửa hàng' : 'gói', price: v.deploy.price, qty: n, grp: 'ivt' });
   const kho = khoCount > 1 ? ` · ${khoCount} kho` : '';
   if (term === '30') out.push(asPkg({ name: `Tặng thêm 6 tháng ${v.base}`, sub: 'Combo mua 2 năm tặng 6 tháng' + kho, unit: 'tháng/kho', price: v.month, qty: 6 * khoCount, disc: v.month * 6 * khoCount, gift: true, grp: 'ivt' }, n > 1 ? khoCount : 1));
   if (term === '15') out.push(asPkg({ name: `Tặng thêm 3 tháng ${v.base}`, sub: 'Mô hình chuỗi từ 3 cửa hàng' + kho, unit: 'tháng/kho', price: v.month, qty: 3 * khoCount, disc: v.month * 3 * khoCount, gift: true, grp: 'ivt' }, n > 1 ? khoCount : 1));
