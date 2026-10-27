@@ -516,14 +516,16 @@ const storeStepper = (key, label) => `<div class="ctl"><span>${label}</span><spa
 const chainWarn = (term, n) => term === '15' && n < 3 ? '<div class="warn">Combo 15 tháng áp dụng cho chuỗi từ 3 cửa hàng trở lên</div>' : '';
 const hrStaff = h => h.staff ? `Tối đa ${h.staff} nhân viên chấm công` : 'Không giới hạn nhân viên chấm công';
 // Dòng báo giá HRM theo thời hạn combo: thuê bao + tháng tặng (nếu có) + phí khởi tạo
+// Nhiều cửa hàng: dòng thuê bao theo tháng gom thành "gói N tháng", SL = số cửa hàng (giống combo FABi)
+const asPkg = (o, cnt) => cnt > 1 ? Object.assign(o, { unit: `gói ${o.qty / cnt} tháng`, price: o.price * o.qty / cnt, qty: cnt }) : o;
 function hrLines(k, term, n = S.hrN || 1) {
   const h = HR[k], out = [];
   const paid = term === '30' ? 24 : 12;
   const ch = n > 1 ? ` × ${n} cửa hàng` : '';
-  out.push({ name: h.name, sub: `Thuê bao ${paid} tháng${ch}`, desc: [hrStaff(h), ...HR_CORE, ...HR_FEATS].join('\n'), unit: 'tháng/cửa hàng', price: h.month, qty: paid * n, grp: 'hrm' });
-  out.push({ name: 'Phí khởi tạo dữ liệu HRM', sub: 'Thu 1 lần duy nhất / cửa hàng', unit: 'lần/cửa hàng', price: HR_INIT, qty: n, grp: 'hrm' });
-  if (term === '30') out.push({ name: 'Tặng thêm 6 tháng iPOS HRM', sub: `Combo mua 2 năm tặng 6 tháng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 6 * n, disc: h.month * 6 * n, gift: true, grp: 'hrm' });
-  if (term === '15') out.push({ name: 'Tặng thêm 3 tháng iPOS HRM', sub: `Mô hình chuỗi từ 3 cửa hàng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 3 * n, disc: h.month * 3 * n, gift: true, grp: 'hrm' });
+  out.push(asPkg({ name: h.name, sub: `Thuê bao ${paid} tháng${ch}`, desc: [hrStaff(h), ...HR_CORE, ...HR_FEATS].join('\n'), unit: 'tháng/cửa hàng', price: h.month, qty: paid * n, grp: 'hrm' }, n));
+  out.push({ name: 'Phí khởi tạo dữ liệu HRM', sub: 'Thu 1 lần duy nhất / cửa hàng', unit: n > 1 ? 'cửa hàng' : 'lần/cửa hàng', price: HR_INIT, qty: n, grp: 'hrm' });
+  if (term === '30') out.push(asPkg({ name: 'Tặng thêm 6 tháng iPOS HRM', sub: `Combo mua 2 năm tặng 6 tháng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 6 * n, disc: h.month * 6 * n, gift: true, grp: 'hrm' }, n));
+  if (term === '15') out.push(asPkg({ name: 'Tặng thêm 3 tháng iPOS HRM', sub: `Mô hình chuỗi từ 3 cửa hàng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 3 * n, disc: h.month * 3 * n, gift: true, grp: 'hrm' }, n));
   return out;
 }
 const hrTotal = (k, term, n) => hrLines(k, term, n).reduce((a, l) => a + l.price * l.qty - (l.disc || 0), 0);
@@ -554,12 +556,14 @@ function ivtLines(k, term, n = S.ivtN || 1) {
   let khoCount = 0;
   v.subs.forEach(sb => {
     const f = sb.store ? n : 1; khoCount += f;
-    out.push({ name: sb.name || v.base, sub: `Thuê bao ${paid} tháng · ${sb.store && n > 1 ? `${n} kho cửa hàng` : sb.label}`, desc: sb.desc.join('\n'), unit: 'tháng/kho', price: v.month, qty: paid * f, grp: 'ivt' });
+    out.push({ name: sb.name || v.base, sub: `Thuê bao ${paid} tháng · ${sb.store && n > 1 ? `${n} kho cửa hàng` : sb.label}`, desc: sb.desc.join('\n'), unit: 'tháng/kho', price: v.month, qty: paid * f, grp: 'ivt', _f: f });
   });
+  if (n > 1) out.forEach(o => Object.assign(o, { unit: `gói ${paid} tháng`, price: o.price * paid, qty: o._f }));
+  out.forEach(o => delete o._f);
   if (v.deploy) out.push({ name: v.deploy.name, sub: 'Inventory Pro', desc: v.deploy.desc.join('\n'), unit: 'gói', price: v.deploy.price, qty: 1, grp: 'ivt' });
   const kho = khoCount > 1 ? ` · ${khoCount} kho` : '';
-  if (term === '30') out.push({ name: `Tặng thêm 6 tháng ${v.base}`, sub: 'Combo mua 2 năm tặng 6 tháng' + kho, unit: 'tháng/kho', price: v.month, qty: 6 * khoCount, disc: v.month * 6 * khoCount, gift: true, grp: 'ivt' });
-  if (term === '15') out.push({ name: `Tặng thêm 3 tháng ${v.base}`, sub: 'Mô hình chuỗi từ 3 cửa hàng' + kho, unit: 'tháng/kho', price: v.month, qty: 3 * khoCount, disc: v.month * 3 * khoCount, gift: true, grp: 'ivt' });
+  if (term === '30') out.push(asPkg({ name: `Tặng thêm 6 tháng ${v.base}`, sub: 'Combo mua 2 năm tặng 6 tháng' + kho, unit: 'tháng/kho', price: v.month, qty: 6 * khoCount, disc: v.month * 6 * khoCount, gift: true, grp: 'ivt' }, n > 1 ? khoCount : 1));
+  if (term === '15') out.push(asPkg({ name: `Tặng thêm 3 tháng ${v.base}`, sub: 'Mô hình chuỗi từ 3 cửa hàng' + kho, unit: 'tháng/kho', price: v.month, qty: 3 * khoCount, disc: v.month * 3 * khoCount, gift: true, grp: 'ivt' }, n > 1 ? khoCount : 1));
   return out;
 }
 const notesList = () => S.line === 'inv' ? ['Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(S.ivt ? [IVT_NOTE] : []), ...(S.hr ? [HR_NOTE] : []), ...(S.cks.usb.on || S.cks.hsm.on ? ['Giá chữ ký số đã bao gồm VAT.'] : [])];
@@ -580,7 +584,7 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
@@ -603,6 +607,17 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const L = o => Object.assign({ disc: 0, desc: '' }, o, { total: o.price * o.qty });
 const months = () => 24 + (S.pSwitch ? 6 : 0) + fxMonths();
 
+const comboN = () => Math.max(1, S.comboN | 0);
+function perStore(lines, n = comboN()) {
+  if (n < 2) return lines;
+  return lines.map(l => {
+    const o = Object.assign({}, l);
+    if (l.unit === 'tháng') { o.unit = `gói ${l.qty} tháng`; o.price = l.price * l.qty; o.qty = n; }
+    else { o.unit = l.unit === '1 lần' ? 'cửa hàng' : l.unit; o.qty = l.qty * n; }
+    o.disc = (l.disc || 0) * n;
+    return L(o);
+  });
+}
 function comboLines(hddt) {
   const A = [];
   A.push(L({ name: 'Phần mềm FABi', sub: 'Thuê bao 12 tháng', desc: FABI_FEATURES.map((f, i) => `1.${i + 1}: ${f[0]}: ${f[1]}`).join('\n'), unit: 'tháng', price: FABI_MONTH, qty: 12, disc: hddt ? 1500000 : 300000 }));
@@ -715,8 +730,7 @@ function build() {
   } else if (isBox()) {
     A.push(...boxLines());
   } else if (S.combo) {
-    A.push(...comboLines(S.hddt));
-    if (S.pSwitch) A.push(L({ name: 'Tặng thêm 6 tháng phần mềm FABi', sub: 'Hỗ trợ chuyển đổi từ phần mềm khác', unit: 'tháng', price: FABI_MONTH, qty: 6, disc: 1500000, gift: true }));
+    A.push(...perStore([...comboLines(S.hddt), ...(S.pSwitch ? [L({ name: 'Tặng thêm 6 tháng phần mềm FABi', sub: 'Hỗ trợ chuyển đổi từ phần mềm khác', unit: 'tháng', price: FABI_MONTH, qty: 6, disc: 1500000, gift: true })] : [])]));
   } else {
     A.push(...softOnlyLines());
     if (S.pSwitch) A.push(L({ name: 'Tặng thêm 6 tháng phần mềm FABi', sub: 'Hỗ trợ chuyển đổi từ phần mềm khác', unit: 'tháng', price: FABI_MONTH, qty: 6, disc: 1500000, gift: true }));
@@ -736,7 +750,7 @@ function build() {
 const comboPrice = hddt => comboLines(hddt).reduce((a, l) => a + l.total - l.disc, 0);
 const titleA = () => isInv() ? 'HÓA ĐƠN ĐIỆN TỬ IPOS INVOICE' : isBox() ? (S.boxCombo ? 'GÓI COMBO FABiBox : POS + PHẦN MỀM BẢN QUYỀN TRỌN ĐỜI' : 'PHẦN MỀM QUẢN LÝ BÁN HÀNG FABiBox – BẢN QUYỀN TRỌN ĐỜI') + (S.boxHddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '')
   : !S.combo ? `PHẦN MỀM FABi ${12 + (S.pSwitch ? 6 : 0) + fxMonths()} THÁNG`
-  : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '');
+  : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '') + (comboN() > 1 ? ` – ${comboN()} CỬA HÀNG` : '');
 // Các mục lớn đánh chữ theo thứ tự chỉ trên những mục có sản phẩm (bỏ B thì C thành B)
 function sections(q) {
   return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['CHỮ KÝ SỐ HILO', q.K, q.sK], ['PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
@@ -834,7 +848,13 @@ function softExtra() {
     ${switchPromo()}
   </div>`;
 }
-const comboExtra = softExtra;
+function comboExtra() {
+  return `<div class="pi-x">
+    ${storeStepper('combo', 'Số cửa hàng')}
+    <div class="sublabel">Chương trình Convert</div>
+    ${switchPromo()}
+  </div>`;
+}
 // Khung chọn chữ ký số HILO: tích USB Token / Cloud HSM (mua được cả 2), mỗi loại chọn hình thức + thời hạn
 function cksPicker(sig) {
   return `${['usb', 'hsm'].map(t => {
@@ -1018,6 +1038,7 @@ $('g-combo').addEventListener('click', e => {
     if (d.einvPkg) S.einv.pkg = +d.einvPkg;
     update(); return;
   }
+  const sn = e.target.closest('[data-sn]'); if (sn) { const key = sn.dataset.sn + 'N'; S[key] = Math.max(1, (S[key] | 0) + (+sn.dataset.d)); update(); return; }
   const ln = e.target.closest('[data-line]'); if (ln) { S.line = ln.dataset.line; if (isBox() && S.ivt === 'prokho') S.ivt = ''; update(); return; }
   const b = e.target.closest('[data-plan]'); if (!b) return;
   if (b.dataset.plan === 'bc' || b.dataset.plan === 'bs') { S.boxCombo = b.dataset.plan === 'bc'; update(); return; }
@@ -1030,6 +1051,7 @@ $('g-combo').addEventListener('input', e => {
   S.einv[f] = parseInt(e.target.value.replace(/\D/g, '')) || 0; save(); renderDoc();
 });
 $('g-combo').addEventListener('change', e => {
+  if (e.target.dataset.sni) { S[e.target.dataset.sni + 'N'] = Math.max(1, parseInt(e.target.value.replace(/\D/g, '')) || 1); update(); return; }
   if (e.target.dataset.einvf) { update(); return; }
   if (e.target.id === 'einv-fresh') { S.einv.fresh = e.target.checked; update(); return; }
   if (e.target.id === 'box-hddt') { S.boxHddt = e.target.checked; update(); return; }
@@ -1132,7 +1154,7 @@ function plainText() {
     const name = isBox()
       ? (S.boxCombo ? `Combo FABiBox (phần mềm bản quyền trọn đời) + máy POS ${posOf().model}` : 'Phần mềm FABiBox – bản quyền trọn đời') + (S.boxHddt ? ' + tặng 10.000 hóa đơn điện tử (dùng 6 tháng)' : '')
       : S.combo
-      ? `Combo FABi ${total} tháng (${parts.join(' + ')}) + máy POS ${posOf().model}${S.hddt ? ' + 10.000 hóa đơn điện tử' : ''}`
+      ? `Combo FABi ${total} tháng (${parts.join(' + ')}) + máy POS ${posOf().model}${S.hddt ? ' + 10.000 hóa đơn điện tử' : ''}${comboN() > 1 ? ` × ${comboN()} cửa hàng` : ''}`
       : `Phần mềm FABi ${total} tháng${parts.length > 1 ? ` (${parts.join(' + ')})` : ''}`;
     out.push('', `• ${name}: ${priceLine(m.t, m.f)}`);
     if (extra.length) {
