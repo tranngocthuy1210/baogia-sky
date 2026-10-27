@@ -667,7 +667,7 @@ const PRT = {
   einv: { name: 'Phí kết nối hóa đơn điện tử với phần mềm POS FABi', hint: 'Kết nối HĐĐT của đối tác với POS FABi', unit: 'cửa hàng', zl: 'cửa hàng', price: 2000000, per: 'lần / cửa hàng', qtyLabel: 'Số cửa hàng', tabs: ['fabi'] },
   api:  { name: 'Phí kết nối API', hint: 'Kết nối API với hệ thống đối tác', unit: 'lần/thương hiệu', zl: 'thương hiệu', price: 20000000, per: 'lần / thương hiệu', qtyLabel: 'Số thương hiệu', tabs: ['fabi'] },
   ...Object.fromEntries([['grab', 'GrabFood'], ['shopee', 'ShopeeFood'], ['be', 'BeFood'], ['green', 'GreenFood']].map(([k, n]) => [k,
-    { name: `Phí kết nối FoodHub – ${n}`, hint: `Đồng bộ đơn ${n} về POS qua FoodHub`, unit: 'cửa hàng', zl: 'cửa hàng', price: 500000, per: 'lần / cửa hàng', qtyLabel: 'Số cửa hàng', tabs: ['fabi', 'box'], noDisc: true }]))
+    { name: `Phí kết nối FoodHub – ${n}`, hint: '', unit: 'cửa hàng', zl: 'cửa hàng', price: 500000, per: 'lần / cửa hàng', qtyLabel: 'Số cửa hàng', tabs: ['fabi', 'box'], noDisc: true }]))
 };
 function prtLines() {
   return Object.entries(PRT).filter(([k]) => prtOn(k) && S.prt[k].on).map(([k, v]) => {
@@ -947,7 +947,7 @@ function renderPrt() {
   $('g-prt').innerHTML = head + Object.entries(PRT).filter(([k]) => prtOn(k)).map(([k, v]) => {
     const g = S.prt[k];
     return `<div class="pi${g.on ? ' on' : ''}"><button type="button" class="pi-m" data-prt="${k}" aria-pressed="${g.on}">
-      ${mark()}<span class="pi-t"><b>${v.name}</b><small>${v.hint}</small></span>
+      ${mark()}<span class="pi-t"><b>${v.name}</b>${v.hint ? `<small>${v.hint}</small>` : ''}</span>
       <span class="pi-p">${vnd(v.price)}<small>${v.per}</small></span></button>
       ${g.on ? `<div class="pi-x">
         ${k === 'einv' ? `<div class="sublabel">Đối tác kết nối</div><div class="tabs" role="radiogroup" aria-label="Đối tác hóa đơn điện tử">${PRT_EINV.map(n => `<button type="button" class="tab" data-prtp="${n}" role="radio" aria-selected="${g.partner === n}" aria-checked="${g.partner === n}">${n}</button>`).join('')}</div>` : ''}
