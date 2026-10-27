@@ -688,6 +688,9 @@ function boxLines(combo = S.boxCombo) {
 }
 const boxPrice = combo => boxLines(combo).reduce((a, l) => a + l.total - l.disc, 0);
 const isBox = () => S.line === 'box';
+// FABiBox không có mô hình chuỗi: Inventory bỏ combo 15 tháng (giữ lựa chọn cho tab FABi)
+const ivtTerms = () => Object.entries(HR_TERMS).filter(([t]) => !(isBox() && t === '15'));
+const ivtTerm = () => isBox() && S.ivtTerm === '15' ? '12' : S.ivtTerm;
 const isInv = () => S.line === 'inv';
 const noDisc = () => isInv(); // tab iPOS Invoice không có giảm giá → ẩn cột Giảm giá
 const subtLabel = () => noDisc() ? 'Thành tiền ' : 'Tổng tiền trước giảm giá / Giảm giá / Thành tiền ';
@@ -745,7 +748,7 @@ function build() {
   // Tab iPOS Invoice không bán kèm thiết bị (giữ lựa chọn để khi quay lại FABi/FABiBox vẫn còn)
   if (!isInv()) HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0), l.total); B.push(l); } });
   // Tab iPOS Invoice chỉ báo giá hóa đơn điện tử: bỏ phần mềm bổ sung và chi phí triển khai (giữ lựa chọn cho tab khác)
-  if (!isInv() && S.ivt && IVT[S.ivt]) ivtLines(S.ivt, S.ivtTerm).forEach(l => C.push(L(l)));
+  if (!isInv() && S.ivt && IVT[S.ivt]) ivtLines(S.ivt, ivtTerm()).forEach(l => C.push(L(l)));
   if (!isInv()) hrPicked().forEach(k => hrLines(k, S.hrs[k].term, S.hrs[k].n).forEach(l => C.push(L(l))));
   const D = isInv() ? [] : depLines();
   const sum = arr => { const s = arr.reduce((a, l) => ({ total: a.total + l.total, disc: a.disc + l.disc }), { total: 0, disc: 0 }); s.final = s.total - s.disc; return s; };
@@ -933,19 +936,19 @@ function renderSoft() {
     const on = S.ivt === k, v = IVT[k];
     return `<div class="pi${on ? ' on' : ''}"><button type="button" class="pi-m" data-ivt="${k}" role="radio" aria-checked="${on}">
       ${mark(true)}<span class="pi-t"><b>${k ? v.name : 'Không dùng phần mềm kho'}</b>${k ? `<small>${v.short}</small><span class="chips"><span class="chip n">${v.chip}</span></span>` : ''}</span>
-      ${k ? `<span class="pi-p">${vnd(on ? ivtTotal(k, S.ivtTerm) : ivtTotal(k, '12', 1))}<small>${HR_TERMS[on ? S.ivtTerm : '12'].label}${on && S.ivtN > 1 ? ` · ${S.ivtN} CH` : ''}</small></span>` : ''}</button>
+      ${k ? `<span class="pi-p">${vnd(on ? ivtTotal(k, ivtTerm()) : ivtTotal(k, '12', 1))}<small>${HR_TERMS[on ? ivtTerm() : '12'].label}${on && S.ivtN > 1 ? ` · ${S.ivtN} CH` : ''}</small></span>` : ''}</button>
       ${on && k ? `<div class="pi-x">
         ${storeStepper('ivt', 'Số cửa hàng')}
         <div class="sublabel">Thời hạn combo</div>
-        <div class="terms" role="radiogroup" aria-label="Thời hạn combo Inventory">${Object.entries(HR_TERMS).map(([t, tv]) => `<button type="button" class="term${S.ivtTerm === t ? ' on' : ''}" data-ivterm="${t}" role="radio" aria-checked="${S.ivtTerm === t}"><b>${tv.label}</b><small>${tv.hint}</small><span class="money">${vnd(ivtTotal(k, t))}</span></button>`).join('')}</div>
-        ${chainWarn(S.ivtTerm, S.ivtN)}
+        <div class="terms" role="radiogroup" aria-label="Thời hạn combo Inventory">${ivtTerms().map(([t, tv]) => `<button type="button" class="term${ivtTerm() === t ? ' on' : ''}" data-ivterm="${t}" role="radio" aria-checked="${ivtTerm() === t}"><b>${tv.label}</b><small>${tv.hint}</small><span class="money">${vnd(ivtTotal(k, t))}</span></button>`).join('')}</div>
+        ${chainWarn(ivtTerm(), S.ivtN)}
       </div>` : ''}</div>`;
   };
-  const picked = [S.ivt && `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''}`, ...hrPicked().map(k => `${HR[k].name.replace('iPOS HRM · ', 'HRM ')} ${HR_TERMS[S.hrs[k].term].label}${S.hrs[k].n > 1 ? ` × ${S.hrs[k].n} CH` : ''}`)].filter(Boolean);
+  const picked = [S.ivt && `${IVT[S.ivt].name} ${HR_TERMS[ivtTerm()].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''}`, ...hrPicked().map(k => `${HR[k].name.replace('iPOS HRM · ', 'HRM ')} ${HR_TERMS[S.hrs[k].term].label}${S.hrs[k].n > 1 ? ` × ${S.hrs[k].n} CH` : ''}`)].filter(Boolean);
   const head = grpHead('soft', 'Phần mềm bổ sung (IVT + HRM)', '', picked.length ? picked.join(' · ') : 'Chưa chọn');
   if (folded('soft')) { $('g-soft').innerHTML = head; return; }
   $('g-soft').innerHTML = `${head}
-    ${grpHead('ivt', 'Quản lý kho · chọn 1 gói', '', S.ivt ? `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''} · ${vnd(ivtTotal(S.ivt, S.ivtTerm))}` : 'Chưa chọn')}
+    ${grpHead('ivt', 'Quản lý kho · chọn 1 gói', '', S.ivt ? `${IVT[S.ivt].name} ${HR_TERMS[ivtTerm()].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''} · ${vnd(ivtTotal(S.ivt, ivtTerm()))}` : 'Chưa chọn')}
     ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['', 'plus', 'pro', ...(isBox() ? [] : ['prokho'])].map(ivtRow).join('')}</div>`}
     ${grpHead('hr', 'Chấm công iPOS HRM · chọn được nhiều gói', '', hrPicked().length ? `${hrPicked().length} gói · ${hrStores()} CH · ${vnd(hrPicked().reduce((a, k) => a + hrTotal(k, S.hrs[k].term, S.hrs[k].n), 0))}` : 'Chưa chọn', true)}
     ${folded('hr') ? '' : `<div role="group" aria-label="Gói chấm công">${Object.keys(HR).map(hrRow).join('')}</div>`}`;
@@ -1177,8 +1180,8 @@ function plainText() {
   if (!isInv()) q.K.forEach(l => out.push(`• ${l.name} (${l.sub}): ${money(l.total)}`));
   // Phần mềm bổ sung: mỗi gói 1 dòng
   if (!isInv() && S.ivt && IVT[S.ivt]) {
-    const t = ivtLines(S.ivt, S.ivtTerm).reduce((a, l) => a + l.price * l.qty, 0), f = ivtTotal(S.ivt, S.ivtTerm);
-    out.push(`• ${IVT[S.ivt].name} – ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} cửa hàng` : ''}: ${priceLine(t, f)}`);
+    const t = ivtLines(S.ivt, ivtTerm()).reduce((a, l) => a + l.price * l.qty, 0), f = ivtTotal(S.ivt, ivtTerm());
+    out.push(`• ${IVT[S.ivt].name} – ${HR_TERMS[ivtTerm()].label}${S.ivtN > 1 ? ` × ${S.ivtN} cửa hàng` : ''}: ${priceLine(t, f)}`);
   }
   if (!isInv()) hrPicked().forEach(k => {
     const g = S.hrs[k], t = hrLines(k, g.term, g.n).reduce((a, l) => a + l.price * l.qty, 0), f = hrTotal(k, g.term, g.n);
