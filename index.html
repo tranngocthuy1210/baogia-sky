@@ -953,7 +953,7 @@ function renderSoft() {
   if (folded('soft')) { $('g-soft').innerHTML = head; return; }
   $('g-soft').innerHTML = `${head}
     ${grpHead('ivt', 'Quản lý kho · chọn 1 gói', '', S.ivt ? `${IVT[S.ivt].name} ${HR_TERMS[ivtTerm()].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''} · ${vnd(ivtTotal(S.ivt, ivtTerm()))}` : 'Chưa chọn')}
-    ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['', 'plus', 'pro', 'prole', ...(isBox() ? [] : ['prokho'])].map(ivtRow).join('')}</div>`}
+    ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['plus', 'pro', 'prole', ...(isBox() ? [] : ['prokho'])].map(ivtRow).join('')}</div>`}
     ${grpHead('hr', 'Chấm công iPOS HRM · chọn được nhiều gói', '', hrPicked().length ? `${hrPicked().length} gói · ${hrStores()} CH · ${vnd(hrPicked().reduce((a, k) => a + hrTotal(k, S.hrs[k].term, S.hrs[k].n), 0))}` : 'Chưa chọn', true)}
     ${folded('hr') ? '' : `<div role="group" aria-label="Gói chấm công">${Object.keys(HR).map(hrRow).join('')}</div>`}`;
 }
@@ -1124,7 +1124,7 @@ $('g-hw').addEventListener('focusout', e => {
 });
 $('g-soft').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.ivt != null) { S.ivt = b.dataset.ivt; update(); }
+  if (b.dataset.ivt != null) { if (S.ivt === b.dataset.ivt) { S.ivt = ''; S.ivtN = 1; } else S.ivt = b.dataset.ivt; update(); }
   else if (b.dataset.ivterm) { S.ivtTerm = b.dataset.ivterm; update(); }
   else if (b.dataset.sn) setN(b.dataset.sn, (S[b.dataset.sn + 'N'] | 0) + (+b.dataset.d));
   else if (b.dataset.hr) { const k = b.dataset.hr; if (S.hrs[k]) delete S.hrs[k]; else S.hrs[k] = { n: 1, term: '12' }; update(); }
