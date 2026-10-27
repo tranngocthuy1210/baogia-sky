@@ -663,13 +663,13 @@ function fxLines() {
 /* Chi phí kết nối partner (chỉ tab FABi): kết nối HĐĐT đối tác với POS FABi, kết nối API */
 const PRT_EINV = ['Me-invoice', 'M-invoice', 'S-invoice', 'VNPT Invoice'];
 const PRT = {
-  einv: { name: 'Phí kết nối hóa đơn điện tử với phần mềm POS FABi', hint: 'Kết nối HĐĐT của đối tác với POS FABi', unit: 'cửa hàng', price: 2000000, per: 'lần / cửa hàng', qtyLabel: 'Số cửa hàng' },
-  api:  { name: 'Phí kết nối API', hint: 'Kết nối API với hệ thống đối tác', unit: 'lần', price: 20000000, per: 'lần kết nối', qtyLabel: 'Số lần kết nối' }
+  einv: { name: 'Phí kết nối hóa đơn điện tử với phần mềm POS FABi', hint: 'Kết nối HĐĐT của đối tác với POS FABi', unit: 'cửa hàng', zl: 'cửa hàng', price: 2000000, per: 'lần / cửa hàng', qtyLabel: 'Số cửa hàng' },
+  api:  { name: 'Phí kết nối API', hint: 'Kết nối API với hệ thống đối tác', unit: 'lần/thương hiệu', zl: 'thương hiệu', price: 20000000, per: 'lần / thương hiệu', qtyLabel: 'Số thương hiệu' }
 };
 function prtLines() {
   if (S.line !== 'fabi') return [];
   return Object.entries(PRT).filter(([k]) => S.prt[k].on).map(([k, v]) => {
-    const g = S.prt[k], l = L({ name: v.name, sub: k === 'einv' ? `Đối tác: ${g.partner}` : '', unit: v.unit, price: v.price, qty: g.n });
+    const g = S.prt[k], l = L({ name: v.name, sub: k === 'einv' ? `Đối tác: ${g.partner}` : '', unit: v.unit, zl: v.zl, price: v.price, qty: g.n });
     l.disc = Math.min(Math.max(0, +g.disc || 0), l.total);
     return l;
   });
@@ -1256,7 +1256,7 @@ function plainText() {
     out.push(`• Chấm công ${HR[k].name} – ${HR_TERMS[g.term].label}${g.n > 1 ? ` × ${g.n} cửa hàng` : ''}: ${priceLine(t, f)}`);
   });
 
-  q.P.forEach(l => out.push(`• ${l.name}${l.sub ? ` (${l.sub})` : ''}${l.qty > 1 ? ` × ${l.qty} ${l.unit}` : ''}: ${priceLine(l.total, l.total - l.disc)}`));
+  q.P.forEach(l => out.push(`• ${l.name}${l.sub ? ` (${l.sub})` : ''}${l.qty > 1 ? ` × ${l.qty} ${l.zl || l.unit}` : ''}: ${priceLine(l.total, l.total - l.disc)}`));
   q.D.forEach(l => out.push(`• Chi phí triển khai tỉnh (${l.qty} ngày${l.sub ? ', ' + l.sub : ''}): ${money(l.total)}`));
   out.push('', `TỔNG THANH TOÁN: ${money(q.grand)}`);
   if (q.saved) out.push(`Tiết kiệm: ${money(q.saved)}`);
