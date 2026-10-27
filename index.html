@@ -544,6 +544,9 @@ const IVT = {
       desc: ['Số hóa quy trình nhập hàng', 'Quản trị kho hàng theo thời gian thực', 'Quản trị công nợ khách hàng, nhà cung cấp, công nợ nội bộ', 'Báo cáo kho chuyên biệt F&B', 'Đồng bộ tự động từ POS bán hàng'] }],
     deploy: { name: 'Phí triển khai mô hình cửa hàng', price: 1500000,
       desc: [...IVT_DEPLOY, 'Training và bàn giao 2 buổi (online hoặc tại cửa hàng)', 'Triển khai 1 cửa hàng, hỗ trợ kỹ thuật 2 tuần', 'Phát sinh thêm buổi training: 1.000.000đ/buổi'] } },
+  prole: { name: 'iPOS Inventory Pro · gói lẻ', base: 'iPOS Inventory Pro', short: '1 kho cửa hàng · không kèm triển khai', chip: 'Không phí triển khai', month: 200000,
+    subs: [{ label: '1 kho cửa hàng', store: true,
+      desc: ['Số hóa quy trình nhập hàng', 'Quản trị kho hàng theo thời gian thực', 'Quản trị công nợ khách hàng, nhà cung cấp, công nợ nội bộ', 'Báo cáo kho chuyên biệt F&B', 'Đồng bộ tự động từ POS bán hàng'] }] },
   prokho: { name: 'iPOS Inventory Pro · có kho tổng', base: 'iPOS Inventory Pro', short: '1 kho cửa hàng + 1 kho tổng / bếp trung tâm', chip: 'Gồm phí triển khai', month: 200000,
     subs: [
       { name: 'iPOS Inventory Pro · kho cửa hàng', label: '1 kho cửa hàng', store: true,
@@ -950,7 +953,7 @@ function renderSoft() {
   if (folded('soft')) { $('g-soft').innerHTML = head; return; }
   $('g-soft').innerHTML = `${head}
     ${grpHead('ivt', 'Quản lý kho · chọn 1 gói', '', S.ivt ? `${IVT[S.ivt].name} ${HR_TERMS[ivtTerm()].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''} · ${vnd(ivtTotal(S.ivt, ivtTerm()))}` : 'Chưa chọn')}
-    ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['', 'plus', 'pro', ...(isBox() ? [] : ['prokho'])].map(ivtRow).join('')}</div>`}
+    ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['', 'plus', 'pro', 'prole', ...(isBox() ? [] : ['prokho'])].map(ivtRow).join('')}</div>`}
     ${grpHead('hr', 'Chấm công iPOS HRM · chọn được nhiều gói', '', hrPicked().length ? `${hrPicked().length} gói · ${hrStores()} CH · ${vnd(hrPicked().reduce((a, k) => a + hrTotal(k, S.hrs[k].term, S.hrs[k].n), 0))}` : 'Chưa chọn', true)}
     ${folded('hr') ? '' : `<div role="group" aria-label="Gói chấm công">${Object.keys(HR).map(hrRow).join('')}</div>`}`;
 }
