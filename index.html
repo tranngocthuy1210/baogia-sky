@@ -517,15 +517,18 @@ const chainWarn = (term, n) => term === '15' && n < 3 ? '<div class="warn">Combo
 const hrStaff = h => h.staff ? `Tối đa ${h.staff} nhân viên chấm công` : 'Không giới hạn nhân viên chấm công';
 // Dòng báo giá HRM theo thời hạn combo: thuê bao + tháng tặng (nếu có) + phí khởi tạo
 // Nhiều cửa hàng: dòng thuê bao theo tháng gom thành "gói N tháng", SL = số cửa hàng (giống combo FABi)
-const asPkg = (o, cnt) => cnt > 1 ? Object.assign(o, { unit: `gói ${o.qty / cnt} tháng`, price: o.price * o.qty / cnt, qty: cnt }) : o;
-function hrLines(k, term, n = S.hrN || 1) {
+const asPkg = (o, cnt, force) => cnt > 1 || force ? Object.assign(o, { unit: `gói ${o.qty / cnt} tháng`, price: o.price * o.qty / cnt, qty: cnt }) : o;
+const hrPicked = () => Object.keys(HR).filter(k => S.hrs[k]);
+const hrStores = () => hrPicked().reduce((a, k) => a + S.hrs[k].n, 0);
+function hrLines(k, term, n = 1) {
   const h = HR[k], out = [];
   const paid = term === '30' ? 24 : 12;
+  const pk = n > 1 || hrStores() > 1; // khách nhiều cửa hàng: mọi gói HRM cùng kiểu "gói N tháng"
   const ch = n > 1 ? ` × ${n} cửa hàng` : '';
-  out.push(asPkg({ name: h.name, sub: `Thuê bao ${paid} tháng${ch}`, desc: [hrStaff(h), ...HR_CORE, ...HR_FEATS].join('\n'), unit: 'tháng/cửa hàng', price: h.month, qty: paid * n, grp: 'hrm' }, n));
-  out.push({ name: 'Phí khởi tạo dữ liệu HRM', sub: 'Thu 1 lần duy nhất / cửa hàng', unit: n > 1 ? 'cửa hàng' : 'lần/cửa hàng', price: HR_INIT, qty: n, grp: 'hrm' });
-  if (term === '30') out.push(asPkg({ name: 'Tặng thêm 6 tháng iPOS HRM', sub: `Combo mua 2 năm tặng 6 tháng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 6 * n, disc: h.month * 6 * n, gift: true, grp: 'hrm' }, n));
-  if (term === '15') out.push(asPkg({ name: 'Tặng thêm 3 tháng iPOS HRM', sub: `Mô hình chuỗi từ 3 cửa hàng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 3 * n, disc: h.month * 3 * n, gift: true, grp: 'hrm' }, n));
+  out.push(asPkg({ name: h.name, sub: `Thuê bao ${paid} tháng${ch}`, desc: [hrStaff(h), ...HR_CORE, ...HR_FEATS].join('\n'), unit: 'tháng/cửa hàng', price: h.month, qty: paid * n, grp: 'hrm-' + k }, n, pk));
+  out.push({ name: 'Phí khởi tạo dữ liệu HRM', sub: 'Thu 1 lần duy nhất / cửa hàng', unit: pk ? 'cửa hàng' : 'lần/cửa hàng', price: HR_INIT, qty: n, grp: 'hrm-' + k });
+  if (term === '30') out.push(asPkg({ name: 'Tặng thêm 6 tháng iPOS HRM', sub: `Combo mua 2 năm tặng 6 tháng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 6 * n, disc: h.month * 6 * n, gift: true, grp: 'hrm-' + k }, n, pk));
+  if (term === '15') out.push(asPkg({ name: 'Tặng thêm 3 tháng iPOS HRM', sub: `Mô hình chuỗi từ 3 cửa hàng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 3 * n, disc: h.month * 3 * n, gift: true, grp: 'hrm-' + k }, n, pk));
   return out;
 }
 const hrTotal = (k, term, n) => hrLines(k, term, n).reduce((a, l) => a + l.price * l.qty - (l.disc || 0), 0);
@@ -566,7 +569,7 @@ function ivtLines(k, term, n = S.ivtN || 1) {
   if (term === '15') out.push(asPkg({ name: `Tặng thêm 3 tháng ${v.base}`, sub: 'Mô hình chuỗi từ 3 cửa hàng' + kho, unit: 'tháng/kho', price: v.month, qty: 3 * khoCount, disc: v.month * 3 * khoCount, gift: true, grp: 'ivt' }, n > 1 ? khoCount : 1));
   return out;
 }
-const notesList = () => S.line === 'inv' ? ['Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(S.ivt ? [IVT_NOTE] : []), ...(S.hr ? [HR_NOTE] : []), ...(S.cks.usb.on || S.cks.hsm.on ? ['Giá chữ ký số đã bao gồm VAT.'] : [])];
+const notesList = () => S.line === 'inv' ? ['Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(S.ivt ? [IVT_NOTE] : []), ...(hrPicked().length ? [HR_NOTE] : []), ...(S.cks.usb.on || S.cks.hsm.on ? ['Giá chữ ký số đã bao gồm VAT.'] : [])];
 const ivtTotal = (k, term, n) => ivtLines(k, term, n).reduce((a, l) => a + l.price * l.qty - (l.disc || 0), 0);
 const IVT_NOTE = 'Đơn giá iPOS Inventory chưa bao gồm chi phí triển khai ngoại thành Hà Nội, Hồ Chí Minh.';
 const NOTES = [
@@ -584,11 +587,15 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hr: '', hrTerm: '12', hrN: 1, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
-try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: 0, days: 1, note: '' }, S.dep || {}); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0); } } catch (e) {}
+try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: 0, days: 1, note: '' }, S.dep || {}); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0);
+  // dữ liệu cũ (chỉ 1 gói HRM) → dạng nhiều gói
+  if (S.hr && HR[S.hr] && !Object.keys(S.hrs || {}).length) S.hrs = { [S.hr]: { n: Math.max(1, S.hrN | 0), term: HR_TERMS[S.hrTerm] ? S.hrTerm : '12' } };
+  delete S.hr; delete S.hrN; delete S.hrTerm;
+  S.hrs = Object.fromEntries(Object.entries(S.hrs || {}).filter(([k]) => HR[k]).map(([k, v]) => [k, { n: Math.max(1, v.n | 0), term: HR_TERMS[v.term] ? v.term : '12' }])); } } catch (e) {}
 // Mỗi lần mở trang: ngày gửi = hôm nay, số báo giá tự sinh theo ngày (nếu chưa sửa tay)
 if (S.c.ngay !== today()) { S.c.ngay = today(); if (/^\d{8}\|iPOS$/.test(S.c.so)) S.c.so = quoteNo(); }
 if (S.line === 'box' && S.ivt === 'prokho') S.ivt = '';
@@ -739,7 +746,7 @@ function build() {
   if (!isInv()) HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0), l.total); B.push(l); } });
   // Tab iPOS Invoice chỉ báo giá hóa đơn điện tử: bỏ phần mềm bổ sung và chi phí triển khai (giữ lựa chọn cho tab khác)
   if (!isInv() && S.ivt && IVT[S.ivt]) ivtLines(S.ivt, S.ivtTerm).forEach(l => C.push(L(l)));
-  if (!isInv() && S.hr && HR[S.hr]) hrLines(S.hr, S.hrTerm).forEach(l => C.push(L(l)));
+  if (!isInv()) hrPicked().forEach(k => hrLines(k, S.hrs[k].term, S.hrs[k].n).forEach(l => C.push(L(l))));
   const D = isInv() ? [] : depLines();
   const sum = arr => { const s = arr.reduce((a, l) => ({ total: a.total + l.total, disc: a.disc + l.disc }), { total: 0, disc: 0 }); s.final = s.total - s.disc; return s; };
   const sA = sum(A), sB = sum(B), sC = sum(C), sK = sum(K), sD = sum(D), all = [sA, sB, sC, sK, sD];
@@ -911,15 +918,15 @@ function renderHW() {
 function renderSoft() {
   if (isInv()) { $('g-soft').innerHTML = ''; return; }
   const hrRow = (k) => {
-    const on = S.hr === k, h = HR[k];
-    return `<div class="pi${on ? ' on' : ''}"><button type="button" class="pi-m" data-hr="${k}" role="radio" aria-checked="${on}">
-      ${mark(true)}<span class="pi-t"><b>${k ? h.name : 'Không dùng chấm công'}</b></span>
-      ${k ? `<span class="pi-p">${vnd(on ? hrTotal(k, S.hrTerm) : hrTotal(k, '12', 1))}<small>${HR_TERMS[on ? S.hrTerm : '12'].label}${on && S.hrN > 1 ? ` · ${S.hrN} CH` : ''}</small></span>` : ''}</button>
-      ${on && k ? `<div class="pi-x">
-        ${storeStepper('hr', 'Số cửa hàng')}
+    const g = S.hrs[k], on = !!g, h = HR[k];
+    return `<div class="pi${on ? ' on' : ''}"><button type="button" class="pi-m" data-hr="${k}" aria-pressed="${on}">
+      ${mark()}<span class="pi-t"><b>${h.name}</b></span>
+      <span class="pi-p">${vnd(on ? hrTotal(k, g.term, g.n) : hrTotal(k, '12', 1))}<small>${HR_TERMS[on ? g.term : '12'].label}${on && g.n > 1 ? ` · ${g.n} CH` : ''}</small></span></button>
+      ${on ? `<div class="pi-x">
+        <div class="ctl"><span>Số cửa hàng</span><span class="qty"><button type="button" data-hrn="${k}" data-d="-1" aria-label="Giảm số cửa hàng">−</button><input id="hrn-${k}" data-hrni="${k}" value="${g.n}" inputmode="numeric" aria-label="Số cửa hàng ${h.name}"><button type="button" data-hrn="${k}" data-d="1" aria-label="Tăng số cửa hàng">+</button></span></div>
         <div class="sublabel">Thời hạn combo</div>
-        <div class="terms" role="radiogroup" aria-label="Thời hạn combo HRM">${Object.entries(HR_TERMS).map(([t, v]) => `<button type="button" class="term${S.hrTerm === t ? ' on' : ''}" data-term="${t}" role="radio" aria-checked="${S.hrTerm === t}"><b>${v.label}</b><small>${v.hint}</small><span class="money">${vnd(hrTotal(k, t))}</span></button>`).join('')}</div>
-        ${chainWarn(S.hrTerm, S.hrN)}
+        <div class="terms" role="radiogroup" aria-label="Thời hạn combo ${h.name}">${Object.entries(HR_TERMS).map(([t, v]) => `<button type="button" class="term${g.term === t ? ' on' : ''}" data-term="${k}:${t}" role="radio" aria-checked="${g.term === t}"><b>${v.label}</b><small>${v.hint}</small><span class="money">${vnd(hrTotal(k, t, g.n))}</span></button>`).join('')}</div>
+        ${chainWarn(g.term, hrStores())}
       </div>` : ''}</div>`;
   };
   const ivtRow = (k) => {
@@ -934,14 +941,14 @@ function renderSoft() {
         ${chainWarn(S.ivtTerm, S.ivtN)}
       </div>` : ''}</div>`;
   };
-  const picked = [S.ivt && `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''}`, S.hr && `${HR[S.hr].name.replace('iPOS HRM · ', 'HRM ')} ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} CH` : ''}`].filter(Boolean);
+  const picked = [S.ivt && `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''}`, ...hrPicked().map(k => `${HR[k].name.replace('iPOS HRM · ', 'HRM ')} ${HR_TERMS[S.hrs[k].term].label}${S.hrs[k].n > 1 ? ` × ${S.hrs[k].n} CH` : ''}`)].filter(Boolean);
   const head = grpHead('soft', 'Phần mềm bổ sung (IVT + HRM)', '', picked.length ? picked.join(' · ') : 'Chưa chọn');
   if (folded('soft')) { $('g-soft').innerHTML = head; return; }
   $('g-soft').innerHTML = `${head}
     ${grpHead('ivt', 'Quản lý kho · chọn 1 gói', '', S.ivt ? `${IVT[S.ivt].name} ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} CH` : ''} · ${vnd(ivtTotal(S.ivt, S.ivtTerm))}` : 'Chưa chọn')}
     ${folded('ivt') ? '' : `<div role="radiogroup" aria-label="Gói phần mềm kho">${['', 'plus', 'pro', ...(isBox() ? [] : ['prokho'])].map(ivtRow).join('')}</div>`}
-    ${grpHead('hr', 'Chấm công iPOS HRM · chọn 1 gói', '', S.hr ? `${HR[S.hr].name.replace('iPOS HRM · ', '')} ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} CH` : ''} · ${vnd(hrTotal(S.hr, S.hrTerm))}` : 'Chưa chọn', true)}
-    ${folded('hr') ? '' : `<div role="radiogroup" aria-label="Gói chấm công">${['', ...Object.keys(HR)].map(hrRow).join('')}</div>`}`;
+    ${grpHead('hr', 'Chấm công iPOS HRM · chọn được nhiều gói', '', hrPicked().length ? `${hrPicked().length} gói · ${hrStores()} CH · ${vnd(hrPicked().reduce((a, k) => a + hrTotal(k, S.hrs[k].term, S.hrs[k].n), 0))}` : 'Chưa chọn', true)}
+    ${folded('hr') ? '' : `<div role="group" aria-label="Gói chấm công">${Object.keys(HR).map(hrRow).join('')}</div>`}`;
 }
 
 /* ---------- Form báo giá (phải) ---------- */
@@ -1099,11 +1106,14 @@ $('g-soft').addEventListener('click', e => {
   if (b.dataset.ivt != null) { S.ivt = b.dataset.ivt; update(); }
   else if (b.dataset.ivterm) { S.ivtTerm = b.dataset.ivterm; update(); }
   else if (b.dataset.sn) { const key = b.dataset.sn + 'N'; S[key] = Math.max(1, (S[key] | 0) + (+b.dataset.d)); update(); }
-  else if (b.dataset.hr != null) { S.hr = b.dataset.hr; update(); }
-  else if (b.dataset.term) { S.hrTerm = b.dataset.term; update(); }
+  else if (b.dataset.hr) { const k = b.dataset.hr; if (S.hrs[k]) delete S.hrs[k]; else S.hrs[k] = { n: 1, term: '12' }; update(); }
+  else if (b.dataset.hrn) { const g = S.hrs[b.dataset.hrn]; g.n = Math.max(1, g.n + (+b.dataset.d)); update(); }
+  else if (b.dataset.term) { const [k, t] = b.dataset.term.split(':'); S.hrs[k].term = t; update(); }
 });
 $('g-soft').addEventListener('change', e => {
-  const t = e.target; if (!t.dataset.sni) return;
+  const t = e.target;
+  if (t.dataset.hrni) { S.hrs[t.dataset.hrni].n = Math.max(1, parseInt(t.value.replace(/\D/g, '')) || 1); update(); return; }
+  if (!t.dataset.sni) return;
   S[t.dataset.sni + 'N'] = Math.max(1, parseInt(t.value.replace(/\D/g, '')) || 1); update();
 });
 $('show-spec').addEventListener('change', e => { S.spec = e.target.checked; save(); renderDoc(); });
@@ -1170,10 +1180,10 @@ function plainText() {
     const t = ivtLines(S.ivt, S.ivtTerm).reduce((a, l) => a + l.price * l.qty, 0), f = ivtTotal(S.ivt, S.ivtTerm);
     out.push(`• ${IVT[S.ivt].name} – ${HR_TERMS[S.ivtTerm].label}${S.ivtN > 1 ? ` × ${S.ivtN} cửa hàng` : ''}: ${priceLine(t, f)}`);
   }
-  if (!isInv() && S.hr && HR[S.hr]) {
-    const t = hrLines(S.hr, S.hrTerm).reduce((a, l) => a + l.price * l.qty, 0), f = hrTotal(S.hr, S.hrTerm);
-    out.push(`• Chấm công ${HR[S.hr].name} – ${HR_TERMS[S.hrTerm].label}${S.hrN > 1 ? ` × ${S.hrN} cửa hàng` : ''}: ${priceLine(t, f)}`);
-  }
+  if (!isInv()) hrPicked().forEach(k => {
+    const g = S.hrs[k], t = hrLines(k, g.term, g.n).reduce((a, l) => a + l.price * l.qty, 0), f = hrTotal(k, g.term, g.n);
+    out.push(`• Chấm công ${HR[k].name} – ${HR_TERMS[g.term].label}${g.n > 1 ? ` × ${g.n} cửa hàng` : ''}: ${priceLine(t, f)}`);
+  });
 
   q.D.forEach(l => out.push(`• Chi phí triển khai tỉnh (${l.qty} ngày${l.sub ? ', ' + l.sub : ''}): ${money(l.total)}`));
   out.push('', `TỔNG THANH TOÁN: ${money(q.grand)}`);
