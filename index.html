@@ -589,13 +589,14 @@ const KEY = 'fabi-quote-v1';
 // Ngày theo giờ máy người dùng (giờ Việt Nam), không dùng UTC để tránh lùi 1 ngày trước 7h sáng
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
+const DEP_PRICE = 850000; // đơn giá triển khai tỉnh mặc định / ngày, NVKD sửa lại nếu khác
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: 0, days: 1, note: '' }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: DEP_PRICE, days: 1, note: '' }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
-try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.prt = Object.fromEntries(Object.entries(fresh().prt).map(([k, v]) => [k, Object.assign(v, (o.prt || {})[k] || {})])); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: 0, days: 1, note: '' }, S.dep || {}); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0);
+try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.prt = Object.fromEntries(Object.entries(fresh().prt).map(([k, v]) => [k, Object.assign(v, (o.prt || {})[k] || {})])); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: DEP_PRICE, days: 1, note: '' }, S.dep || {}); S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0);
   // dữ liệu cũ (chỉ 1 gói HRM) → dạng nhiều gói
   if (S.hr && HR[S.hr] && !Object.keys(S.hrs || {}).length) S.hrs = { [S.hr]: { n: Math.max(1, S.hrN | 0), term: HR_TERMS[S.hrTerm] ? S.hrTerm : '12' } };
   delete S.hr; delete S.hrN; delete S.hrTerm;
@@ -1129,7 +1130,7 @@ $('g-prt').addEventListener('focusout', e => {
 });
 $('g-dep').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.hasAttribute('data-dep')) { S.dep.on = !S.dep.on; update(); if (S.dep.on && !S.dep.price) $('dep-price')?.focus(); }
+  if (b.hasAttribute('data-dep')) { S.dep.on = !S.dep.on; if (S.dep.on && !S.dep.price) S.dep.price = DEP_PRICE; update(); }
   else if (b.dataset.depd) { const n = (S.dep.days | 0) + (+b.dataset.depd); if (n > 0) S.dep.days = n; else { S.dep.on = false; S.dep.days = 1; } update(); }
 });
 // Gõ số không vẽ lại danh sách (giữ con trỏ), chỉ cập nhật bảng báo giá và tổng ở dòng trên
