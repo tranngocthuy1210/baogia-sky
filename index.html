@@ -176,10 +176,6 @@ h1,h2,.doc h2.title{font-variation-settings:"opsz" 32}
 .pc-gift{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:var(--r-sm);background:var(--promo-soft);color:var(--promo);font-size:12.5px}
 .pc-gift svg{flex:none;margin-top:2px}.pc-gift span{display:grid;gap:1px}.pc-gift small{color:var(--ink-3);font-size:11.5px}
 .pc-hint{font-size:12px;color:var(--ink-3);margin-top:-4px}
-.pc-addon{display:grid;grid-template-columns:minmax(0,1fr) 80px 28px;gap:6px}
-.pc-addon .inp-s{width:100%;text-align:left}
-.pc-x,.pc-add{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);cursor:pointer;font:inherit;color:var(--ink-2)}
-.pc-add{justify-self:start;padding:5px 10px;font-size:12.5px;font-weight:600}
 .warn{font-size:12px;font-weight:600;color:var(--promo);background:var(--promo-soft);border-radius:var(--r-sm);padding:6px 8px}
 .sublabel{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:2px}
 
@@ -598,15 +594,14 @@ const KEY = 'fabi-quote-v1';
 // Ngày theo giờ máy người dùng (giờ Việt Nam), không dùng UTC để tránh lùi 1 ngày trước 7h sáng
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
-const PC_ADDONS = ['Kết nối hóa đơn điện tử', 'iPOS Inventory Pro']; // addon mặc định tab Convert POS PC, NVKD sửa / xóa / thêm
 const DEP_PRICE = 850000; // đơn giá triển khai tỉnh mặc định / ngày, NVKD sửa lại nếu khác
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: DEP_PRICE, days: 1, note: '' }, pc: { srv: 0, hw10: true, addons: PC_ADDONS.map(name => ({ name, m: 0 })) }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: DEP_PRICE, days: 1, note: '' }, pc: { srv: 0, hw10: true }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
-try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.prt = Object.fromEntries(Object.entries(fresh().prt).map(([k, v]) => [k, Object.assign(v, (o.prt || {})[k] || {})])); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: DEP_PRICE, days: 1, note: '' }, S.dep || {}); S.pc = Object.assign(fresh().pc, S.pc || {}); if (!Array.isArray(S.pc.addons)) S.pc.addons = []; S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0);
+try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.prt = Object.fromEntries(Object.entries(fresh().prt).map(([k, v]) => [k, Object.assign(v, (o.prt || {})[k] || {})])); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: DEP_PRICE, days: 1, note: '' }, S.dep || {}); S.pc = Object.assign(fresh().pc, S.pc || {}); delete S.pc.addons; S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0);
   // dữ liệu cũ (chỉ 1 gói HRM) → dạng nhiều gói
   if (S.hr && HR[S.hr] && !Object.keys(S.hrs || {}).length) S.hrs = { [S.hr]: { n: Math.max(1, S.hrN | 0), term: HR_TERMS[S.hrTerm] ? S.hrTerm : '12' } };
   delete S.hr; delete S.hrN; delete S.hrTerm;
@@ -707,13 +702,11 @@ function pcLines() {
   if (m) out.push(L({ name: 'Quy đổi thời hạn máy chủ POS PC còn lại', sub: `Còn ${m} tháng × 2 = ${2 * m} tháng FABi (*)`, unit: 'tháng', price: FABI_MONTH, qty: 2 * m, disc: FABI_MONTH * 2 * m, gift: true }));
   return out;
 }
-const pcAddons = () => S.pc.addons.filter(a => (a.name || '').trim() && (a.m | 0) > 0);
-const pcAddonLines = () => pcAddons().map(a => L({ name: `Chuyển addon ${a.name.trim()} sang FABi`, sub: `Dùng tiếp ${a.m | 0} tháng còn lại của addon đã mua`, unit: 'tháng', price: 0, qty: a.m | 0, gift: true, cv: true }));
 const PC_NOTES = [
   'Chương trình hỗ trợ khách hàng dùng POS PC chuyển qua FABi áp dụng từ 01/11/2026 đến hết 31/12/2026.',
   '(*) Khách còn hạn máy chủ: quy đổi x2 thời hạn máy chủ còn lại thành thời hạn FABi.',
   '(**) Khách mua mới gói FABi combo bất kỳ hoặc mua FABi từ 1 năm được tặng thêm 1 năm FABi.',
-  'Các addon đang mua và dùng cho POS PC được hỗ trợ chuyển sang dùng tiếp với FABi theo thời gian còn lại của addon đã mua.',
+  'Các addon đang mua và dùng cho PC, sẽ hỗ trợ chuyển sang dùng tiếp với FABi mới theo thời gian còn lại của addon đã mua.',
   'Voucher có thời hạn sử dụng ngay khi active.',
   'Điều kiện chương trình:\n+ Khách đồng ý để iPOS ngưng dịch vụ máy chủ và chấm dứt bản quyền phần mềm quản lý bán hàng POS PC sau khi chuyển đổi hoàn tất.\n+ Áp dụng cho cửa hàng đang dùng POS PC, mỗi cửa hàng được quy đổi một lần.\n+ Chính sách giảm 10% thiết bị mua thêm chỉ áp dụng 1 lần lúc khách chuyển đổi.'
 ];
@@ -803,7 +796,6 @@ function build() {
     A.push(...perStore([...softOnlyLines(), ...swLines()]));
   }
   if (isFabi()) A.push(...fxLines());
-  if (isPc()) A.push(...pcAddonLines());
   // Tab iPOS Invoice không bán kèm thiết bị (giữ lựa chọn để khi quay lại FABi/FABiBox vẫn còn)
   if (!isInv()) HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0) + (pcHw10() ? Math.round(l.total * PC_HW_RATE) : 0), l.total); if (pcHw10()) l.sub = 'Giảm 10% chương trình chuyển đổi POS PC'; B.push(l); } });
   // Tab iPOS Invoice chỉ báo giá hóa đơn điện tử: bỏ phần mềm bổ sung và chi phí triển khai (giữ lựa chọn cho tab khác)
@@ -900,7 +892,7 @@ function renderCombo() {
     ${plan('none', 'Khách chỉ mua phần mềm', '', softOnlyLines().reduce((a, l) => a + l.total, 0), '')}
     </div>${S.combo && comboN() ? posPicker() : ''}${isPc() ? pcPanel() : ''}`;
 }
-// Khung chương trình Convert POS PC: quy đổi máy chủ, addon dùng tiếp, giảm 10% thiết bị
+// Khung chương trình Convert POS PC: quy đổi máy chủ, giảm 10% thiết bị
 function pcPanel() {
   const p = S.pc, m = pcSrv();
   return `<div class="grp-t" style="padding-top:6px">Chương trình Convert POS PC <span>01/11 – 31/12/2026</span></div>
@@ -908,9 +900,6 @@ function pcPanel() {
       <div class="pc-gift">${ico('gift', 14)}<span><b>Tặng thêm 1 năm FABi (**)</b><small>${comboN() ? 'Tự áp dụng khi mua combo bất kỳ hoặc FABi từ 1 năm' : 'Chọn gói ở trên để áp dụng'}</small></span></div>
       <div class="ctl"><span>Thời hạn máy chủ còn lại (tháng)</span><span class="qty"><button type="button" data-pcs="-1" aria-label="Giảm số tháng">−</button><input id="pc-srv" data-pcf="srv" value="${m}" inputmode="numeric" aria-label="Số tháng máy chủ còn lại"><button type="button" data-pcs="1" aria-label="Tăng số tháng">+</button></span></div>
       <div class="pc-hint">${m ? `Quy đổi x2 → <b>${2 * m} tháng FABi</b> (*)` : 'Nhập 0 nếu khách đã hết hạn máy chủ'}</div>
-      <div class="sublabel">Addon đang dùng trên POS PC</div>
-      ${p.addons.map((a, i) => `<div class="pc-addon"><input class="inp-s" data-pca="${i}" data-pcaf="name" value="${esc(a.name)}" placeholder="Tên addon, VD: O2O" aria-label="Tên addon"><input class="inp-s" data-pca="${i}" data-pcaf="m" value="${a.m || ''}" inputmode="numeric" placeholder="Số tháng" aria-label="Số tháng còn lại"><button type="button" class="pc-x" data-pcdel="${i}" aria-label="Xóa addon">×</button></div>`).join('')}
-      <button type="button" class="pc-add" data-pcadd>+ Thêm addon</button>
       <label class="promo${p.hw10 ? ' on' : ''}" for="pc-hw10"><span class="tx"><b>Giảm 10% thiết bị mua thêm</b><span>Chỉ áp dụng 1 lần lúc khách chuyển đổi</span></span><input type="checkbox" class="switch" id="pc-hw10" ${p.hw10 ? 'checked' : ''}></label>
       ${comboN() ? '' : '<div class="warn">Chọn gói FABi để đưa chương trình vào báo giá</div>'}
     </div>`;
@@ -1144,8 +1133,6 @@ $('g-combo').addEventListener('click', e => {
   }
   const sn = e.target.closest('[data-sn]'); if (sn) { setN(sn.dataset.sn, (S[sn.dataset.sn + 'N'] | 0) + (+sn.dataset.d)); return; }
   const pcs = e.target.closest('[data-pcs]'); if (pcs) { S.pc.srv = Math.max(0, pcSrv() + (+pcs.dataset.pcs)); update(); return; }
-  if (e.target.closest('[data-pcadd]')) { S.pc.addons.push({ name: '', m: 0 }); update(); const r = document.querySelectorAll('[data-pcaf="name"]'); if (r.length) r[r.length - 1].focus(); return; }
-  const pcd = e.target.closest('[data-pcdel]'); if (pcd) { S.pc.addons.splice(+pcd.dataset.pcdel, 1); update(); return; }
   const ln = e.target.closest('[data-line]'); if (ln) { S.line = ln.dataset.line; if (isBox() && S.ivt === 'prokho') S.ivt = ''; update(); return; }
   const b = e.target.closest('[data-plan]'); if (!b) return;
   if (b.dataset.plan === 'bc' || b.dataset.plan === 'bs') { S.boxCombo = b.dataset.plan === 'bc'; update(); return; }
@@ -1158,7 +1145,6 @@ $('g-combo').addEventListener('input', e => {
   const t = e.target;
   // Gõ không vẽ lại khung chọn (giữ con trỏ)
   if (t.dataset.pcf === 'srv') { S.pc.srv = parseInt(t.value.replace(/\D/g, '')) || 0; save(); renderDoc(); return; }
-  if (t.dataset.pca) { const a = S.pc.addons[+t.dataset.pca]; if (a) a[t.dataset.pcaf] = t.dataset.pcaf === 'm' ? parseInt(t.value.replace(/\D/g, '')) || 0 : t.value; save(); renderDoc(); return; }
   const f = t.dataset.einvf; if (!f) return;
   S.einv[f] = parseInt(e.target.value.replace(/\D/g, '')) || 0; save(); renderDoc();
 });
@@ -1168,7 +1154,7 @@ $('g-combo').addEventListener('change', e => {
   if (e.target.id === 'einv-fresh') { S.einv.fresh = e.target.checked; update(); return; }
   if (e.target.id === 'box-hddt') { S.boxHddt = e.target.checked; update(); return; }
   if (e.target.id === 'pc-hw10') { S.pc.hw10 = e.target.checked; update(); return; }
-  if (e.target.dataset.pcf || e.target.dataset.pca) { update(); return; }
+  if (e.target.dataset.pcf) { update(); return; }
   if (e.target.id === 'p-switch') S.pSwitch = e.target.checked;
   update();
 });
@@ -1288,8 +1274,8 @@ function plainText() {
   if (isInv()) [...q.A, ...q.K].forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.unit === 'hóa đơn' ? ` (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)` : l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
   // Phần mềm FABi / combo
   else if (q.A.length) {
-    const main = q.A.filter(l => !l.cv && !/mua thêm/i.test(l.name) && !/khi mua thêm/i.test(l.sub || ''));
-    const extra = q.A.filter(l => !l.cv && !main.includes(l));
+    const main = q.A.filter(l => !/mua thêm/i.test(l.name) && !/khi mua thêm/i.test(l.sub || ''));
+    const extra = q.A.filter(l => !main.includes(l));
     const sum = arr => arr.reduce((a, l) => ({ t: a.t + l.total, f: a.f + l.total - l.disc }), { t: 0, f: 0 });
     const m = sum(main);
     // Ghi rõ tổng số tháng đã gồm tháng tặng, tránh khách hiểu là cộng dồn thêm
@@ -1307,7 +1293,6 @@ function plainText() {
       out.push(`• Mua thêm 1 năm FABi${S.fxN > 1 ? ` × ${S.fxN} cửa hàng` : ''}: ${money(e.f)}${g ? ` (${g.name.replace('phần mềm FABi', 'FABi')})` : ''}`);
     }
   }
-  if (isPc()) q.A.filter(l => l.cv).forEach(l => out.push(`• ${l.name}: dùng tiếp ${l.qty} tháng (miễn phí)`));
   // Thiết bị
   if (!isInv()) q.B.forEach(l => out.push(`• ${l.name}${l.qty > 1 ? ' × ' + l.qty : ''}: ${priceLine(l.total, l.total - l.disc)}${pcHw10() ? ' – giảm 10% chuyển đổi POS PC' : ''}`));
   if (!isInv()) q.K.forEach(l => out.push(`• ${l.name} (${l.sub}): ${money(l.total)}`));
