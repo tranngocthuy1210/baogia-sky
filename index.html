@@ -578,7 +578,7 @@ function ivtLines(k, term, n = S.ivtN || 1) {
   if (term === '15') out.push(asPkg({ name: `Tặng thêm 3 tháng ${v.base}`, sub: 'Mô hình chuỗi từ 3 cửa hàng' + kho, unit: 'tháng/kho', price: v.month, qty: 3 * khoCount, disc: v.month * 3 * khoCount, gift: true, grp: 'ivt' }, n > 1 ? khoCount : 1));
   return out;
 }
-const notesList = () => S.line === 'inv' ? ['Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(isPc() ? PC_NOTES : []), ...(S.ivt ? [IVT_NOTE] : []), ...(hrPicked().length ? [HR_NOTE] : []), ...(S.cks.usb.on || S.cks.hsm.on ? ['Giá chữ ký số đã bao gồm VAT.'] : [])];
+const notesList = () => isRn() ? [NOTES[0], NOTES[1], NOTES[4], ...RN_NOTES()] : S.line === 'inv' ? ['Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(isPc() ? PC_NOTES : []), ...(S.ivt ? [IVT_NOTE] : []), ...(hrPicked().length ? [HR_NOTE] : []), ...(S.cks.usb.on || S.cks.hsm.on ? ['Giá chữ ký số đã bao gồm VAT.'] : [])];
 const ivtTotal = (k, term, n) => ivtLines(k, term, n).reduce((a, l) => a + l.price * l.qty - (l.disc || 0), 0);
 const IVT_NOTE = 'Đơn giá iPOS Inventory chưa bao gồm chi phí triển khai ngoại thành Hà Nội, Hồ Chí Minh.';
 const NOTES = [
@@ -597,11 +597,11 @@ const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 const DEP_PRICE = 850000; // đơn giá triển khai tỉnh mặc định / ngày, NVKD sửa lại nếu khác
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: DEP_PRICE, days: 1, note: '' }, pc: { srv: 0, hw10: true }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: DEP_PRICE, days: 1, note: '' }, pc: { srv: 0, hw10: true }, rn: { fabi: { on: true, n: 1, y: 1, when: 'early' }, ivt: { k: '', n: 1, y: 1, when: 'early' }, hrs: {} }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
-try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.prt = Object.fromEntries(Object.entries(fresh().prt).map(([k, v]) => [k, Object.assign(v, (o.prt || {})[k] || {})])); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: DEP_PRICE, days: 1, note: '' }, S.dep || {}); S.pc = Object.assign(fresh().pc, S.pc || {}); delete S.pc.addons; S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0);
+try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); S = Object.assign(fresh(), o); S.prt = Object.fromEntries(Object.entries(fresh().prt).map(([k, v]) => [k, Object.assign(v, (o.prt || {})[k] || {})])); S.hw = Object.assign(fresh().hw, o.hw || {}); S.c = Object.assign(fresh().c, o.c || {}); if (o.inv && !o.ivt) S.ivt = 'plus'; delete S.inv; if (S.ivt && !IVT[S.ivt]) S.ivt = ''; if (S.hr && !HR[S.hr]) S.hr = ''; if (!HR_TERMS[S.hrTerm]) S.hrTerm = '12'; if (!HR_TERMS[S.ivtTerm]) S.ivtTerm = '12'; S.hrN = Math.max(1, S.hrN | 0); S.dep = Object.assign({ on: false, price: DEP_PRICE, days: 1, note: '' }, S.dep || {}); S.pc = Object.assign(fresh().pc, S.pc || {}); { const d = fresh().rn, r = S.rn || {}; S.rn = { fabi: Object.assign(d.fabi, r.fabi || {}), ivt: Object.assign(d.ivt, r.ivt || {}), hrs: Object.fromEntries(Object.entries(r.hrs || {}).filter(([k]) => HR[k])) }; } delete S.pc.addons; S.fold = S.fold || {}; if (S.fold.fx === undefined) S.fold.fx = true; if (!['m6', 'itp76'].includes(S.fxGift)) S.fxGift = ''; S.ivtN = Math.max(1, S.ivtN | 0);
   // dữ liệu cũ (chỉ 1 gói HRM) → dạng nhiều gói
   if (S.hr && HR[S.hr] && !Object.keys(S.hrs || {}).length) S.hrs = { [S.hr]: { n: Math.max(1, S.hrN | 0), term: HR_TERMS[S.hrTerm] ? S.hrTerm : '12' } };
   delete S.hr; delete S.hrN; delete S.hrTerm;
@@ -710,6 +710,54 @@ const PC_NOTES = [
   'Voucher có thời hạn sử dụng ngay khi active.',
   'Điều kiện chương trình:\n+ Khách đồng ý để iPOS ngưng dịch vụ máy chủ và chấm dứt bản quyền phần mềm quản lý bán hàng POS PC sau khi chuyển đổi hoàn tất.\n+ Áp dụng cho cửa hàng đang dùng POS PC, mỗi cửa hàng được quy đổi một lần.\n+ Chính sách giảm 10% thiết bị mua thêm chỉ áp dụng 1 lần lúc khách chuyển đổi.'
 ];
+/* Tab Gia hạn: FABi, iPOS Inventory, iPOS HRM theo giá tab FABi, không tính phí khởi tạo / triển khai
+   FABi + Inventory: gia hạn trước 30 ngày 1 năm tặng 2 tháng, 2 năm tặng 6 tháng; gia hạn trong 30 ngày 1 năm tặng 1 tháng, 2 năm tặng 3 tháng
+   HRM: gia hạn 1 năm, 2 năm tặng 6 tháng */
+const isRn = () => S.line === 'rn';
+const RN_WHEN = {
+  early: { label: 'Trước 30 ngày', hint: 'Còn hạn trên 30 ngày', full: 'gia hạn trước 30 ngày', gift: { 1: 2, 2: 6 } },
+  late:  { label: 'Trong 30 ngày', hint: 'Còn hạn 30 ngày trở xuống', full: 'gia hạn trong 30 ngày', gift: { 1: 1, 2: 3 } }
+};
+const RN_IVT = { plus: 'iPOS Inventory Plus', pro: 'iPOS Inventory Pro', prokho: 'iPOS Inventory Pro · có kho tổng' };
+const rnGift = (g, hr) => hr ? (g.y === 2 ? 6 : 0) : RN_WHEN[g.when].gift[g.y];
+const rnG = k => k === 'fabi' ? S.rn.fabi : k === 'ivt' ? S.rn.ivt : S.rn.hrs[k];
+const rnSum = ls => ls.reduce((a, l) => a + l.total - l.disc, 0);
+function rnFabiLines(g = S.rn.fabi) {
+  if (!g.on) return [];
+  const paid = 12 * g.y, gift = rnGift(g), grp = 'rn-fabi';
+  return perStore([
+    L({ name: 'Gia hạn phần mềm FABi', sub: `Thuê bao ${paid} tháng · không tính phí khởi tạo`, desc: FABI_FEATURES.map((f, i) => `1.${i + 1}: ${f[0]}: ${f[1]}`).join('\n'), unit: 'tháng', price: FABI_MONTH, qty: paid, grp }),
+    L({ name: `Tặng thêm ${gift} tháng phần mềm FABi`, sub: `Mua ${g.y} năm · ${RN_WHEN[g.when].full}`, unit: 'tháng', price: FABI_MONTH, qty: gift, disc: FABI_MONTH * gift, gift: true, grp })
+  ], g.n);
+}
+function rnIvtLines(g = S.rn.ivt) {
+  const v = IVT[g.k]; if (!v || !RN_IVT[g.k]) return [];
+  const n = g.n, paid = 12 * g.y, gift = rnGift(g), grp = 'rn-ivt', out = [];
+  let kho = 0;
+  v.subs.forEach(sb => {
+    const f = sb.store ? n : 1; kho += f;
+    out.push({ name: 'Gia hạn ' + (g.k === 'prokho' ? sb.name : v.base), sub: `Thuê bao ${paid} tháng · ${sb.store && n > 1 ? `${n} kho cửa hàng` : sb.label}`, desc: sb.desc.join('\n'), unit: 'tháng/kho', price: v.month, qty: paid * f, grp, _f: f });
+  });
+  if (n > 1) out.forEach(o => Object.assign(o, { unit: `gói ${paid} tháng`, price: o.price * paid, qty: o._f }));
+  out.forEach(o => delete o._f);
+  out.push(asPkg({ name: `Tặng thêm ${gift} tháng ${v.base}`, sub: `Mua ${g.y} năm · ${RN_WHEN[g.when].full}${kho > 1 ? ` · ${kho} kho` : ''}`, unit: 'tháng/kho', price: v.month, qty: gift * kho, disc: v.month * gift * kho, gift: true, grp }, n > 1 ? kho : 1));
+  return out.map(L);
+}
+const rnHrPicked = () => Object.keys(HR).filter(k => S.rn.hrs[k]);
+const rnHrMulti = () => rnHrPicked().reduce((a, k) => a + S.rn.hrs[k].n, 0) > 1;
+function rnHrPkg(k, g, multi = rnHrMulti()) {
+  const h = HR[k], n = g.n, paid = 12 * g.y, grp = 'rn-hrm-' + k, ch = n > 1 ? ` × ${n} cửa hàng` : '';
+  const out = [asPkg({ name: 'Gia hạn ' + h.name, sub: `Thuê bao ${paid} tháng${ch}`, desc: [hrStaff(h), ...HR_CORE, ...HR_FEATS].join('\n'), unit: 'tháng/cửa hàng', price: h.month, qty: paid * n, grp }, n, multi)];
+  if (g.y === 2) out.push(asPkg({ name: 'Tặng thêm 6 tháng iPOS HRM', sub: `Gia hạn 2 năm tặng 6 tháng${ch}`, unit: 'tháng/cửa hàng', price: h.month, qty: 6 * n, disc: h.month * 6 * n, gift: true, grp }, n, multi));
+  return out.map(L);
+}
+const rnHrLines = () => rnHrPicked().flatMap(k => rnHrPkg(k, S.rn.hrs[k]));
+const rnMonths = (g, hr) => 12 * g.y + rnGift(g, hr);
+const RN_NOTES = () => [
+  'Giá gia hạn không tính phí khởi tạo.',
+  ...(S.rn.fabi.on || RN_IVT[S.rn.ivt.k] ? ['Gia hạn trước 30 ngày (phần mềm còn hạn trên 30 ngày): mua 1 năm tặng 2 tháng, mua 2 năm tặng 6 tháng.', 'Gia hạn trong 30 ngày (phần mềm còn hạn từ 30 ngày trở xuống): mua 1 năm tặng 1 tháng, mua 2 năm tặng 3 tháng.'] : []),
+  ...(rnHrPicked().length ? ['iPOS HRM: gia hạn 2 năm tặng 6 tháng.'] : [])
+];
 /* Phần mềm FABiBox: bản quyền trọn đời 2.990.000; mua kèm máy POS giảm 1.000.000 vào phần mềm (máy POS chọn như combo FABi) */
 const FABIBOX = {
   name: 'Phần mềm quản lý bán hàng FABiBox', price: 2990000, comboDisc: 1000000,
@@ -785,8 +833,10 @@ function cksLines(sig = sigState()) {
 }
 const swLines = () => isPc() ? pcLines() : S.pSwitch ? [L({ name: 'Tặng thêm 6 tháng phần mềm FABi', sub: 'Hỗ trợ chuyển đổi từ phần mềm khác', unit: 'tháng', price: FABI_MONTH, qty: 6, disc: 1500000, gift: true })] : [];
 function build() {
-  const A = [], B = [], C = [], K = cksLines();
-  if (isInv()) {
+  const A = [], B = [], C = [], K = isRn() ? [] : cksLines();
+  if (isRn()) {
+    A.push(...rnFabiLines()); C.push(...rnIvtLines(), ...rnHrLines());
+  } else if (isInv()) {
     A.push(...invoiceLines());
   } else if (isBox()) {
     A.push(...boxLines());
@@ -797,23 +847,23 @@ function build() {
   }
   if (isFabi()) A.push(...fxLines());
   // Tab iPOS Invoice không bán kèm thiết bị (giữ lựa chọn để khi quay lại FABi/FABiBox vẫn còn)
-  if (!isInv()) HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0) + (pcHw10() ? Math.round(l.total * PC_HW_RATE) : 0), l.total); if (pcHw10()) l.sub = 'Giảm 10% chương trình chuyển đổi POS PC'; B.push(l); } });
+  if (!isInv() && !isRn()) HW.forEach(h => { const st = S.hw[h.id]; if (st.on) { const l = L({ name: h.name, desc: h.specs.join('\n'), unit: h.unit, price: h.price, qty: Math.max(1, st.qty | 0), img: h.img }); l.disc = Math.min(Math.max(0, +st.disc || 0) + (pcHw10() ? Math.round(l.total * PC_HW_RATE) : 0), l.total); if (pcHw10()) l.sub = 'Giảm 10% chương trình chuyển đổi POS PC'; B.push(l); } });
   // Tab iPOS Invoice chỉ báo giá hóa đơn điện tử: bỏ phần mềm bổ sung và chi phí triển khai (giữ lựa chọn cho tab khác)
-  if (!isInv() && S.ivt && IVT[S.ivt]) ivtLines(S.ivt, ivtTerm()).forEach(l => C.push(L(l)));
-  if (!isInv()) hrPicked().forEach(k => hrLines(k, S.hrs[k].term, S.hrs[k].n).forEach(l => C.push(L(l))));
-  const P = prtLines(), D = isInv() ? [] : depLines();
+  if (!isInv() && !isRn() && S.ivt && IVT[S.ivt]) ivtLines(S.ivt, ivtTerm()).forEach(l => C.push(L(l)));
+  if (!isInv() && !isRn()) hrPicked().forEach(k => hrLines(k, S.hrs[k].term, S.hrs[k].n).forEach(l => C.push(L(l))));
+  const P = prtLines(), D = isInv() || isRn() ? [] : depLines();
   const sum = arr => { const s = arr.reduce((a, l) => ({ total: a.total + l.total, disc: a.disc + l.disc }), { total: 0, disc: 0 }); s.final = s.total - s.disc; return s; };
   const sA = sum(A), sB = sum(B), sC = sum(C), sK = sum(K), sP = sum(P), sD = sum(D), all = [sA, sB, sC, sK, sP, sD];
   const tot = k => all.reduce((a, x) => a + x[k], 0);
   return { A, B, C, K, P, D, sA, sB, sC, sK, sP, sD, total: tot('total'), grand: tot('final'), saved: tot('disc') };
 }
 const comboPrice = hddt => comboLines(hddt).reduce((a, l) => a + l.total - l.disc, 0);
-const titleA = () => isInv() ? 'HÓA ĐƠN ĐIỆN TỬ IPOS INVOICE' : isBox() ? (S.boxCombo ? 'GÓI COMBO FABiBox : POS + PHẦN MỀM BẢN QUYỀN TRỌN ĐỜI' : 'PHẦN MỀM QUẢN LÝ BÁN HÀNG FABiBox – BẢN QUYỀN TRỌN ĐỜI') + (S.boxHddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '')
+const titleA = () => isRn() ? `GIA HẠN PHẦN MỀM FABi ${rnMonths(S.rn.fabi)} THÁNG` + (S.rn.fabi.n > 1 ? ` – ${S.rn.fabi.n} CỬA HÀNG` : '') : isInv() ? 'HÓA ĐƠN ĐIỆN TỬ IPOS INVOICE' : isBox() ? (S.boxCombo ? 'GÓI COMBO FABiBox : POS + PHẦN MỀM BẢN QUYỀN TRỌN ĐỜI' : 'PHẦN MỀM QUẢN LÝ BÁN HÀNG FABiBox – BẢN QUYỀN TRỌN ĐỜI') + (S.boxHddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '')
   : !S.combo ? `PHẦN MỀM FABi ${12 + swMonths() + fxMonths()} THÁNG` + (comboN() > 1 ? ` – ${comboN()} CỬA HÀNG` : '')
   : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '') + (comboN() > 1 ? ` – ${comboN()} CỬA HÀNG` : '');
 // Các mục lớn đánh chữ theo thứ tự chỉ trên những mục có sản phẩm (bỏ B thì C thành B)
 function sections(q) {
-  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['CHỮ KÝ SỐ HILO', q.K, q.sK], ['PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ KẾT NỐI PARTNER', q.P, q.sP], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
+  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['CHỮ KÝ SỐ HILO', q.K, q.sK], [isRn() ? 'GIA HẠN PHẦN MỀM BỔ SUNG' : 'PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ KẾT NỐI PARTNER', q.P, q.sP], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
     .filter(([, lines]) => lines.length)
     .map(([t, lines, s], i) => { const L = 'ABCDEF'[i]; return { title: `${L} - ${t}`, lines, s, lb: `(${L})` }; });
 }
@@ -846,13 +896,13 @@ function renderCombo() {
       ${price != null ? `<span class="pi-p">${vnd(price)}<small>${key === 'none' ? '12 tháng' : 'trọn gói'}</small></span>` : ''}</button>
       ${on ? (key === 'none' ? softExtra() : comboExtra()) : ''}</div>`;
   };
-  const sumCombo = isInv()
+  const sumCombo = isRn() ? `Gia hạn · ${vnd(build().grand)}` : isInv()
     ? `iPOS Invoice ${S.einv.pkg ? 'I-' + nfmt(S.einv.pkg) : 'I-KHÁC'} · ${vnd([...invoiceLines(), ...cksLines(S.einv.sig)].reduce((a, l) => a + l.total - l.disc, 0))}`
     : isBox()
     ? `FABiBox ${S.boxCombo ? 'combo' : 'phần mềm'} · ${vnd(boxPrice(S.boxCombo))}`
     : !comboN() ? 'Chưa chọn gói' : S.combo ? `${S.hddt ? 'Combo tặng HĐĐT' : 'Combo tiêu chuẩn'} · ${vnd(comboPrice(S.hddt))}` : 'Khách chỉ mua phần mềm';
   if (folded('combo')) { $('g-combo').innerHTML = grpHead('combo', 'Chọn giải pháp', '', sumCombo); return; }
-  const lineTabs = `<div class="tabs" role="tablist" aria-label="Dòng phần mềm">${[['fabi', 'FABi'], ['box', 'FABiBox'], ['inv', 'iPOS Invoice'], ['pc', 'Convert POS PC']].map(([k, t]) => `<button type="button" class="tab" role="tab" data-line="${k}" aria-selected="${S.line === k}">${t}</button>`).join('')}</div>`;
+  const lineTabs = `<div class="tabs" role="tablist" aria-label="Dòng phần mềm">${[['fabi', 'FABi'], ['box', 'FABiBox'], ['inv', 'iPOS Invoice'], ['pc', 'Convert POS PC'], ['rn', 'Gia hạn']].map(([k, t]) => `<button type="button" class="tab" role="tab" data-line="${k}" aria-selected="${S.line === k}">${t}</button>`).join('')}</div>`;
   if (isInv()) {
     const e = S.einv;
     const grid = (items, attr, cur) => `<div class="pos-grid">${items.map(([v, b, sm, pr]) => `<button type="button" class="pos${String(v) === String(cur) ? ' on' : ''}" ${attr}="${v}" role="radio" aria-checked="${String(v) === String(cur)}"><span class="ck">${ico('check', 12)}</span><b>${b}</b>${sm ? `<small>${sm}</small>` : ''}${pr != null ? `<span class="money">${vnd(pr)}</span>` : ''}</button>`).join('')}</div>`;
@@ -869,6 +919,7 @@ function renderCombo() {
       ${cksPicker(e.sig)}`;
     return;
   }
+  if (isRn()) { $('g-combo').innerHTML = `${grpHead('combo', 'Chọn giải pháp', '', sumCombo)}${lineTabs}${rnPicker()}`; return; }
   if (isBox()) {
     const bplan = (key, title, price, chips) => {
       const on = (key === 'bc') === !!S.boxCombo;
@@ -904,6 +955,49 @@ function pcPanel() {
       ${comboN() ? '' : '<div class="warn">Chọn gói FABi để đưa chương trình vào báo giá</div>'}
     </div>`;
 }
+// Tab Gia hạn: mỗi sản phẩm chọn số cửa hàng, thời điểm gia hạn (FABi, Inventory) và thời hạn 1 / 2 năm
+function rnPicker() {
+  const R = S.rn;
+  const stepper = k => `<div class="ctl"><span>Số cửa hàng</span><span class="qty"><button type="button" data-rnn="${k}" data-d="-1" aria-label="Giảm số cửa hàng">−</button><input data-rnni="${k}" value="${rnG(k).n}" inputmode="numeric" aria-label="Số cửa hàng"><button type="button" data-rnn="${k}" data-d="1" aria-label="Tăng số cửa hàng">+</button></span></div>`;
+  const when = k => `<div class="sublabel">Thời điểm gia hạn</div><div class="tabs" role="radiogroup" aria-label="Thời điểm gia hạn">${Object.entries(RN_WHEN).map(([w, v]) => `<button type="button" class="tab" data-rnw="${k}:${w}" role="radio" aria-selected="${rnG(k).when === w}" aria-checked="${rnG(k).when === w}">${v.label}</button>`).join('')}</div>`;
+  const terms = (k, price, hr) => `<div class="sublabel">Thời hạn gia hạn</div><div class="terms" role="radiogroup" aria-label="Thời hạn gia hạn">${[1, 2].map(y => {
+    const g = Object.assign({}, rnG(k), { y }), gift = rnGift(g, hr);
+    return `<button type="button" class="term${rnG(k).y === y ? ' on' : ''}" data-rny="${k}:${y}" role="radio" aria-checked="${rnG(k).y === y}"><b>${y} năm</b><small>${gift ? `Tặng ${gift} tháng` : 'Không tặng'}</small><span class="money">${vnd(price(g))}</span></button>`;
+  }).join('')}</div>`;
+  const card = (attr, on, title, hint, price, unit, body) => `<div class="pi${on ? ' on' : ''}"><button type="button" class="pi-m" ${attr} aria-pressed="${on}">
+      ${mark()}<span class="pi-t"><b>${title}</b>${hint ? `<small>${hint}</small>` : ''}</span>
+      <span class="pi-p">${vnd(price)}<small>${unit}</small></span></button>${on ? `<div class="pi-x">${body()}</div>` : ''}</div>`;
+  const f = R.fabi, iv = R.ivt;
+  return `<div class="grp-t" style="padding-top:2px">Phần mềm FABi <span>Không phí khởi tạo</span></div>
+    ${card('data-rn="fabi"', f.on, 'Gia hạn phần mềm FABi', f.on ? `${rnMonths(f)} tháng · ${RN_WHEN[f.when].full}` : 'Trước 30 ngày tặng 2 – 6 tháng · trong 30 ngày tặng 1 – 3 tháng', f.on ? rnSum(rnFabiLines()) : FABI_MONTH * 12, f.on ? `${rnMonths(f)} tháng${f.n > 1 ? ` · ${f.n} CH` : ''}` : '1 năm',
+      () => stepper('fabi') + when('fabi') + terms('fabi', g => rnSum(rnFabiLines(Object.assign({}, g, { on: true })))))}
+    <div class="grp-t">iPOS Inventory <span>Chọn 1 gói</span></div>
+    ${Object.entries(RN_IVT).map(([k, name]) => { const on = iv.k === k, g = on ? iv : Object.assign({}, iv, { k, n: 1, y: 1 });
+      return card(`data-rni="${k}"`, on, name, IVT[k].short, rnSum(rnIvtLines(g)), on ? `${rnMonths(iv)} tháng${iv.n > 1 ? ` · ${iv.n} CH` : ''}` : `${rnMonths(g)} tháng`,
+        () => stepper('ivt') + when('ivt') + terms('ivt', t => rnSum(rnIvtLines(t)))); }).join('')}
+    <div class="grp-t">iPOS HRM <span>Chọn được nhiều gói</span></div>
+    ${Object.entries(HR).map(([k, h]) => { const g = R.hrs[k], on = !!g, t = g || { n: 1, y: 1 };
+      return card(`data-rnh="${k}"`, on, h.name, hrStaff(h), rnSum(rnHrPkg(k, t)), `${rnMonths(t, true)} tháng${on && g.n > 1 ? ` · ${g.n} CH` : ''}`,
+        () => stepper(k) + terms(k, x => rnSum(rnHrPkg(k, x)), true)); }).join('')}`;
+}
+function rnSetN(k, v) {
+  v = Math.max(0, v | 0);
+  if (v) rnG(k).n = v;
+  else if (k === 'fabi') Object.assign(S.rn.fabi, { on: false, n: 1 });
+  else if (k === 'ivt') Object.assign(S.rn.ivt, { k: '', n: 1 });
+  else delete S.rn.hrs[k];
+}
+function rnClick(e) {
+  const b = e.target.closest('[data-rn],[data-rni],[data-rnh],[data-rnw],[data-rny],[data-rnn]'); if (!b) return false;
+  const d = b.dataset, R = S.rn;
+  if (d.rn) Object.assign(R.fabi, { on: !R.fabi.on, n: 1 });
+  else if (d.rni) { if (R.ivt.k === d.rni) Object.assign(R.ivt, { k: '', n: 1 }); else R.ivt.k = d.rni; }
+  else if (d.rnh) { if (R.hrs[d.rnh]) delete R.hrs[d.rnh]; else R.hrs[d.rnh] = { n: 1, y: 1 }; }
+  else if (d.rnw) { const [k, w] = d.rnw.split(':'); rnG(k).when = w; }
+  else if (d.rny) { const [k, y] = d.rny.split(':'); rnG(k).y = +y; }
+  else rnSetN(d.rnn, rnG(d.rnn).n + (+d.d));
+  update(); return true;
+}
 function posPicker() {
   const cur = posOf();
   const head = grpHead('pos', 'Máy POS trong combo', 'Chọn 1 máy', `${cur.model} · ${vnd(cur.price)}`, true);
@@ -938,7 +1032,7 @@ function cksPicker(sig) {
       }).join('')}`;
 }
 function renderCks() {
-  if (isInv()) { $('g-cks').innerHTML = ''; return; }
+  if (isInv() || isRn()) { $('g-cks').innerHTML = ''; return; }
   const ls = cksLines(S.cks);
   const head = grpHead('cks', 'Chữ ký số HILO', 'Đã gồm VAT', ls.length ? `${ls.length} gói · ${vnd(ls.reduce((a, l) => a + l.total, 0))}` : 'Chưa chọn');
   $('g-cks').innerHTML = folded('cks') ? head : head + cksPicker(S.cks);
@@ -961,7 +1055,7 @@ function renderFx() {
       </div>` : ''}</div>`;
 }
 function renderHW() {
-  if (isInv()) { $('g-hw').innerHTML = ''; return; }
+  if (isInv() || isRn()) { $('g-hw').innerHTML = ''; return; }
   const n = HW.filter(h => S.hw[h.id].on).length;
   const head = grpHead('hw', 'Thiết bị mua thêm', 'Đã gồm VAT', n ? `${n} thiết bị đã chọn` : 'Chưa chọn thiết bị');
   if (folded('hw')) { $('g-hw').innerHTML = head; return; }
@@ -999,7 +1093,7 @@ function renderPrt() {
   }).join('');
 }
 function renderSoft() {
-  if (isInv()) { $('g-soft').innerHTML = ''; return; }
+  if (isInv() || isRn()) { $('g-soft').innerHTML = ''; return; }
   const hrRow = (k) => {
     const g = S.hrs[k], on = !!g, h = HR[k];
     return `<div class="pi${on ? ' on' : ''}"><button type="button" class="pi-m" data-hr="${k}" aria-pressed="${on}">
@@ -1082,7 +1176,7 @@ function renderDoc() {
 }
 
 function renderDep() {
-  if (isInv()) { $('g-dep').innerHTML = ''; return; }
+  if (isInv() || isRn()) { $('g-dep').innerHTML = ''; return; }
   const d = S.dep, days = Math.max(1, d.days | 0), tot = d.price * days;
   const head = grpHead('dep', 'Chi phí triển khai tỉnh', 'Tính theo ngày', d.on ? (d.price > 0 ? `${days} ngày · ${vnd(tot)}` : 'Chưa nhập đơn giá') : 'Chưa chọn');
   if (folded('dep')) { $('g-dep').innerHTML = head; return; }
@@ -1125,6 +1219,7 @@ $('g-cks').addEventListener('click', sigClick);
 $('g-combo').addEventListener('click', e => {
   const ps = e.target.closest('[data-pos]'); if (ps) { S.pos = ps.dataset.pos; update(); return; }
   if (sigClick(e)) return;
+  if (rnClick(e)) return;
   const ev = e.target.closest('[data-einv-pkg]');
   if (ev) {
     const d = ev.dataset;
@@ -1149,6 +1244,7 @@ $('g-combo').addEventListener('input', e => {
   S.einv[f] = parseInt(e.target.value.replace(/\D/g, '')) || 0; save(); renderDoc();
 });
 $('g-combo').addEventListener('change', e => {
+  if (e.target.dataset.rnni) { rnSetN(e.target.dataset.rnni, parseInt(e.target.value.replace(/\D/g, '')) || 0); update(); return; }
   if (e.target.dataset.sni) { setN(e.target.dataset.sni, parseInt(e.target.value.replace(/\D/g, '')) || 0); return; }
   if (e.target.dataset.einvf) { update(); return; }
   if (e.target.id === 'einv-fresh') { S.einv.fresh = e.target.checked; update(); return; }
@@ -1266,12 +1362,20 @@ function plainText() {
   const q = build(), c = S.c, out = [];
   const money = n => vnd(n) + 'đ';
   const priceLine = (total, final) => final < total ? `${money(final)} (giá gốc ${money(total)}, giảm ${money(total - final)})` : money(final);
-  out.push(`BÁO GIÁ ${isInv() ? 'iPOS Invoice' : isBox() ? 'FABiBox' : isPc() ? 'FABi – Chương trình chuyển đổi POS PC' : 'FABi'} – iPOS.vn`);
+  out.push(`BÁO GIÁ ${isInv() ? 'iPOS Invoice' : isBox() ? 'FABiBox' : isPc() ? 'FABi – Chương trình chuyển đổi POS PC' : isRn() ? 'GIA HẠN PHẦN MỀM' : 'FABi'} – iPOS.vn`);
   if (c.ten) out.push(`Kính gửi: ${c.ten}${c.mohinh ? ' – ' + c.mohinh : ''}`);
   out.push(`Ngày: ${fmtDate(c.ngay)}`);
 
   // iPOS Invoice: mỗi dòng 1 mục
-  if (isInv()) [...q.A, ...q.K].forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.unit === 'hóa đơn' ? ` (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)` : l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
+  if (isRn()) {
+    const R = S.rn, one = (ls, label) => { if (ls.length) out.push(`• ${label}: ${priceLine(ls.reduce((a, l) => a + l.total, 0), rnSum(ls))}`); };
+    const st = n => n > 1 ? ` × ${n} cửa hàng` : '';
+    out.push('');
+    if (R.fabi.on) one(rnFabiLines(), `Gia hạn FABi ${rnMonths(R.fabi)} tháng (mua ${R.fabi.y} năm + tặng ${rnGift(R.fabi)} tháng, ${RN_WHEN[R.fabi.when].full})${st(R.fabi.n)}`);
+    if (RN_IVT[R.ivt.k]) one(rnIvtLines(), `Gia hạn ${RN_IVT[R.ivt.k]} ${rnMonths(R.ivt)} tháng (mua ${R.ivt.y} năm + tặng ${rnGift(R.ivt)} tháng, ${RN_WHEN[R.ivt.when].full})${st(R.ivt.n)}`);
+    rnHrPicked().forEach(k => { const g = R.hrs[k]; one(rnHrPkg(k, g), `Gia hạn ${HR[k].name} ${rnMonths(g, true)} tháng${g.y === 2 ? ' (mua 2 năm + tặng 6 tháng)' : ''}${st(g.n)}`); });
+  }
+  else if (isInv()) [...q.A, ...q.K].forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.unit === 'hóa đơn' ? ` (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)` : l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
   // Phần mềm FABi / combo
   else if (q.A.length) {
     const main = q.A.filter(l => !/mua thêm/i.test(l.name) && !/khi mua thêm/i.test(l.sub || ''));
@@ -1297,11 +1401,11 @@ function plainText() {
   if (!isInv()) q.B.forEach(l => out.push(`• ${l.name}${l.qty > 1 ? ' × ' + l.qty : ''}: ${priceLine(l.total, l.total - l.disc)}${pcHw10() ? ' – giảm 10% chuyển đổi POS PC' : ''}`));
   if (!isInv()) q.K.forEach(l => out.push(`• ${l.name} (${l.sub}): ${money(l.total)}`));
   // Phần mềm bổ sung: mỗi gói 1 dòng
-  if (!isInv() && S.ivt && IVT[S.ivt]) {
+  if (!isInv() && !isRn() && S.ivt && IVT[S.ivt]) {
     const t = ivtLines(S.ivt, ivtTerm()).reduce((a, l) => a + l.price * l.qty, 0), f = ivtTotal(S.ivt, ivtTerm());
     out.push(`• ${IVT[S.ivt].name} – ${HR_TERMS[ivtTerm()].label}${S.ivtN > 1 ? ` × ${S.ivtN} cửa hàng` : ''}: ${priceLine(t, f)}`);
   }
-  if (!isInv()) hrPicked().forEach(k => {
+  if (!isInv() && !isRn()) hrPicked().forEach(k => {
     const g = S.hrs[k], t = hrLines(k, g.term, g.n).reduce((a, l) => a + l.price * l.qty, 0), f = hrTotal(k, g.term, g.n);
     out.push(`• Chấm công ${HR[k].name} – ${HR_TERMS[g.term].label}${g.n > 1 ? ` × ${g.n} cửa hàng` : ''}: ${priceLine(t, f)}`);
   });
@@ -1322,7 +1426,7 @@ $('btn-copy').onclick = () => {
 /* ---------- Xuất file ---------- */
 let downloads = null;
 (async () => { try { downloads = window.claude ? await window.claude.use('downloads') : null; } catch (e) { downloads = null; } })();
-const fileBase = () => 'Bao_gia_' + (isInv() ? 'iPOS_Invoice' : isBox() ? 'FABiBox' : isPc() ? 'FABi_Convert_POS_PC' : 'FABi') + '_' + ((S.c.ten || 'khach_hang').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^\w]+/g, '_')) + '_' + (S.c.ngay || today()).replace(/-/g, '');
+const fileBase = () => 'Bao_gia_' + (isInv() ? 'iPOS_Invoice' : isBox() ? 'FABiBox' : isPc() ? 'FABi_Convert_POS_PC' : isRn() ? 'Gia_han' : 'FABi') + '_' + ((S.c.ten || 'khach_hang').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^\w]+/g, '_')) + '_' + (S.c.ngay || today()).replace(/-/g, '');
 async function offer(filename, data) {
   if (!downloads) {
     // Ngoài claude.ai (web riêng): tải trực tiếp qua trình duyệt
