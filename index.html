@@ -600,7 +600,7 @@ const quoteNo = d => (d || today()).replace(/-/g, '') + '|iPOS';
 const DEP_PRICE = 850000; // đơn giá triển khai tỉnh mặc định / ngày, NVKD sửa lại nếu khác
 function fresh() {
   const hw = {}; HW.forEach(h => hw[h.id] = { on: false, qty: 1, disc: 0 });
-  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkg: 10000, fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: DEP_PRICE, days: 1, note: '' }, pc: { srv: 0, hw10: true }, rn: { fabi: { on: true, n: 1, y: 1, when: 'early' }, ivt: { k: '', n: 1, y: 1, when: 'early' }, hrs: {} }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
+  return { hddt: true, combo: true, pSwitch: false, pos: 'iap250s', hw, ivt: '', ivtTerm: '12', ivtN: 1, comboN: 1, fxN: 1, hrs: {}, spec: true, fold: { fx: true }, line: 'fabi', boxCombo: true, boxHddt: false, cks: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } }, einv: { pkgs: [10000], fresh: true, cq: 0, cp: 0, sig: { usb: { on: false, mode: 'new', y: 1 }, hsm: { on: false, mode: 'new', y: 1 } } }, fx: false, fxGift: '', hwTab: 'printer', dep: { on: false, price: DEP_PRICE, days: 1, note: '' }, pc: { srv: 0, hw10: true }, rn: { fabi: { on: true, n: 1, y: 1, when: 'early' }, ivt: { k: '', n: 1, y: 1, when: 'early' }, hrs: {} }, prt: { einv: { on: false, n: 1, disc: 0, partner: 'Me-invoice' }, ...Object.fromEntries(['api', 'grab', 'shopee', 'be', 'green'].map(k => [k, { on: false, n: 1, disc: 0 }])) },
     c: { ten: '', sdt: '', mohinh: '', diachi: '', so: quoteNo(), ngay: today(), nvkd: 'Thúy Trần', nvsdt: '0908 664 916' } };
 }
 let S = fresh();
@@ -612,7 +612,10 @@ try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw
 // Mỗi lần mở trang: ngày gửi = hôm nay, số báo giá tự sinh theo ngày (nếu chưa sửa tay)
 if (S.c.ngay !== today()) { S.c.ngay = today(); if (/^\d{8}\|iPOS$/.test(S.c.so)) S.c.so = quoteNo(); }
 if (S.line === 'box' && S.ivt === 'prokho') S.ivt = '';
-S.einv = Object.assign({ pkg: 10000, fresh: true, cq: 0, cp: 0 }, S.einv || {});
+S.einv = Object.assign({ fresh: true, cq: 0, cp: 0 }, S.einv || {});
+// dữ liệu cũ chỉ 1 gói → danh sách gói (cho chọn nhiều gói để khách tham khảo)
+if (!Array.isArray(S.einv.pkgs)) S.einv.pkgs = S.einv.pkg != null ? [+S.einv.pkg] : [10000];
+delete S.einv.pkg;
 if (!S.einv.sig) {  // chuyển dữ liệu cũ (1 lựa chọn) sang dạng mới
   const [t, m] = (S.einv.cks || '').split('-');
   S.einv.sig = { usb: { on: t === 'usb', mode: t === 'usb' ? m : 'new', y: S.einv.cksY || 1 }, hsm: { on: t === 'hsm', mode: t === 'hsm' ? m : 'new', y: S.einv.cksY || 1 } };
@@ -812,14 +815,10 @@ const EINV_NOTES = [
 const nfmt = n => n.toLocaleString('vi-VN');
 function invoiceLines() {
   const e = S.einv, out = [];
-  if (e.pkg === 0) {
-    if (e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice', desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'), unit: 'hóa đơn', price: e.cp, qty: e.cq }));
-  } else {
-  const pk = EINV_PKGS.find(x => x[0] === e.pkg) || EINV_PKGS[2];
-  out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`,
-    desc: ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n'),
-    unit: 'hóa đơn', price: pk[1], qty: pk[0] }));
-  }
+  const desc = ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n');
+  // Nhiều gói: liệt kê theo thứ tự bảng giá, I-KHÁC cuối cùng
+  EINV_PKGS.filter(pk => e.pkgs.includes(pk[0])).forEach(pk => out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`, desc, unit: 'hóa đơn', price: pk[1], qty: pk[0] })));
+  if (e.pkgs.includes(0) && e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice', desc, unit: 'hóa đơn', price: e.cp, qty: e.cq }));
   if (e.fresh) out.push(L({ name: 'Phí khởi tạo hóa đơn điện tử', sub: 'Áp dụng khách hàng mua mới', unit: '1 lần', price: EINV_SETUP, qty: 1 }));
   return out;
 }
@@ -900,7 +899,7 @@ function renderCombo() {
       ${on ? (key === 'none' ? softExtra() : comboExtra()) : ''}</div>`;
   };
   const sumCombo = isRn() ? `Gia hạn · ${vnd(build().grand)}` : isInv()
-    ? `iPOS Invoice ${S.einv.pkg ? 'I-' + nfmt(S.einv.pkg) : 'I-KHÁC'} · ${vnd([...invoiceLines(), ...cksLines(S.einv.sig)].reduce((a, l) => a + l.total - l.disc, 0))}`
+    ? `iPOS Invoice ${S.einv.pkgs.length ? [...S.einv.pkgs].sort((a, b) => (a || 1e9) - (b || 1e9)).map(p => p ? 'I-' + nfmt(p) : 'I-KHÁC').join(', ') : 'chưa chọn gói'} · ${vnd([...invoiceLines(), ...cksLines(S.einv.sig)].reduce((a, l) => a + l.total - l.disc, 0))}`
     : isBox()
     ? `FABiBox ${S.boxCombo ? 'combo' : 'phần mềm'} · ${vnd(boxPrice(S.boxCombo))}`
     : !comboN() ? 'Chưa chọn gói' : S.combo ? `${S.hddt ? 'Combo tặng HĐĐT' : 'Combo tiêu chuẩn'} · ${vnd(comboPrice(S.hddt))}` : 'Khách chỉ mua phần mềm';
@@ -908,11 +907,11 @@ function renderCombo() {
   const lineTabs = `<div class="tabs" role="tablist" aria-label="Dòng phần mềm">${[['fabi', 'FABi'], ['box', 'FABiBox'], ['inv', 'iPOS Invoice'], ['pc', 'Convert POS PC'], ['rn', 'Gia hạn']].map(([k, t]) => `<button type="button" class="tab" role="tab" data-line="${k}" aria-selected="${S.line === k}">${t}</button>`).join('')}</div>`;
   if (isInv()) {
     const e = S.einv;
-    const grid = (items, attr, cur) => `<div class="pos-grid">${items.map(([v, b, sm, pr]) => `<button type="button" class="pos${String(v) === String(cur) ? ' on' : ''}" ${attr}="${v}" role="radio" aria-checked="${String(v) === String(cur)}"><span class="ck">${ico('check', 12)}</span><b>${b}</b>${sm ? `<small>${sm}</small>` : ''}${pr != null ? `<span class="money">${vnd(pr)}</span>` : ''}</button>`).join('')}</div>`;
+    const grid = (items, attr, cur) => `<div class="pos-grid">${items.map(([v, b, sm, pr]) => `<button type="button" class="pos${cur.includes(v) ? ' on' : ''}" ${attr}="${v}" role="checkbox" aria-checked="${cur.includes(v)}"><span class="ck">${ico('check', 12)}</span><b>${b}</b>${sm ? `<small>${sm}</small>` : ''}${pr != null ? `<span class="money">${vnd(pr)}</span>` : ''}</button>`).join('')}</div>`;
     $('g-combo').innerHTML = `${grpHead('combo', 'Chọn giải pháp', '', sumCombo)}${lineTabs}
-      <div class="grp-t" style="padding-top:2px">Gói hóa đơn điện tử <span>Không giới hạn thời gian</span></div>
-      ${grid([...EINV_PKGS.map(([n, u]) => [n, 'I-' + nfmt(n), `${u}đ/hóa đơn`, n * u]), [0, 'I-KHÁC', 'Liên hệ · tự nhập giá', null]], 'data-einv-pkg', e.pkg)}
-      ${e.pkg === 0 ? `<div class="pi-x" style="padding:0 4px 12px">
+      <div class="grp-t" style="padding-top:2px">Gói hóa đơn điện tử <span>Chọn được nhiều gói</span></div>
+      ${grid([...EINV_PKGS.map(([n, u]) => [n, 'I-' + nfmt(n), `${u}đ/hóa đơn`, n * u]), [0, 'I-KHÁC', 'Liên hệ · tự nhập giá', null]], 'data-einv-pkg', e.pkgs)}
+      ${e.pkgs.includes(0) ? `<div class="pi-x" style="padding:0 4px 12px">
         <div class="ctl"><label for="einv-cq">Số lượng hóa đơn</label><input class="inp-s" id="einv-cq" data-einvf="cq" value="${e.cq ? nfmt(e.cq) : ''}" inputmode="numeric" placeholder="VD: 2.000.000"></div>
         <div class="ctl"><label for="einv-cp">Đơn giá / hóa đơn (đ)</label><input class="inp-s" id="einv-cp" data-einvf="cp" value="${e.cp ? nfmt(e.cp) : ''}" inputmode="numeric" placeholder="VD: 75"></div>
         ${e.cq > 0 && e.cp > 0 ? '' : '<div class="warn">Nhập số lượng và đơn giá để đưa gói I-KHÁC vào báo giá</div>'}
@@ -1226,7 +1225,7 @@ $('g-combo').addEventListener('click', e => {
   const ev = e.target.closest('[data-einv-pkg]');
   if (ev) {
     const d = ev.dataset;
-    if (d.einvPkg) S.einv.pkg = +d.einvPkg;
+    if (d.einvPkg) { const v = +d.einvPkg, p = S.einv.pkgs; S.einv.pkgs = p.includes(v) ? p.filter(x => x !== v) : [...p, v]; }
     update(); return;
   }
   const sn = e.target.closest('[data-sn]'); if (sn) { setN(sn.dataset.sn, (S[sn.dataset.sn + 'N'] | 0) + (+sn.dataset.d)); return; }
