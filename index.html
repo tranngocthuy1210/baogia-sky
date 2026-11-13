@@ -581,7 +581,7 @@ function ivtLines(k, term, n = S.ivtN || 1) {
   if (term === '15') out.push(asPkg({ name: `Tặng thêm 3 tháng ${v.base}`, sub: 'Mô hình chuỗi từ 3 cửa hàng' + kho, unit: 'tháng/kho', price: v.month, qty: 3 * khoCount, disc: v.month * 3 * khoCount, gift: true, grp: 'ivt' }, n > 1 ? khoCount : 1));
   return out;
 }
-const notesList = () => isRn() ? [NOTES[0], NOTES[1], NOTES[4], ...RN_NOTES()] : S.line === 'inv' ? ['Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(isPc() ? PC_NOTES : []), ...(S.ivt ? [IVT_NOTE] : []), ...(hrPicked().length ? [HR_NOTE] : []), ...(S.cks.usb.on || S.cks.hsm.on ? ['Giá chữ ký số đã bao gồm VAT.'] : [])];
+const notesList = () => isRn() ? [NOTES[0], NOTES[1], NOTES[4], ...RN_NOTES()] : S.line === 'inv' ? [...(build().opts ? ['Báo giá gồm nhiều phương án gói hóa đơn để khách hàng tham khảo; khách hàng chọn 1 phương án phù hợp.'] : []), 'Sản phẩm Phần mềm và Dịch vụ phần mềm không chịu thuế GTGT.', ...EINV_NOTES] : [...NOTES, ...(isPc() ? PC_NOTES : []), ...(S.ivt ? [IVT_NOTE] : []), ...(hrPicked().length ? [HR_NOTE] : []), ...(S.cks.usb.on || S.cks.hsm.on ? ['Giá chữ ký số đã bao gồm VAT.'] : [])];
 const ivtTotal = (k, term, n) => ivtLines(k, term, n).reduce((a, l) => a + l.price * l.qty - (l.disc || 0), 0);
 const IVT_NOTE = 'Đơn giá iPOS Inventory chưa bao gồm chi phí triển khai ngoại thành Hà Nội, Hồ Chí Minh.';
 const NOTES = [
@@ -817,8 +817,8 @@ function invoiceLines() {
   const e = S.einv, out = [];
   const desc = ['Không hạn chế thời gian sử dụng hóa đơn', 'Hết hóa đơn chỉ cần mua thêm gói', 'Phần mềm không chịu thuế GTGT'].join('\n');
   // Nhiều gói: liệt kê theo thứ tự bảng giá, I-KHÁC cuối cùng
-  EINV_PKGS.filter(pk => e.pkgs.includes(pk[0])).forEach(pk => out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`, desc, unit: 'hóa đơn', price: pk[1], qty: pk[0] })));
-  if (e.pkgs.includes(0) && e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice', desc, unit: 'hóa đơn', price: e.cp, qty: e.cq }));
+  EINV_PKGS.filter(pk => e.pkgs.includes(pk[0])).forEach(pk => out.push(L({ name: `Gói hóa đơn điện tử iPOS Invoice I-${nfmt(pk[0])}`, desc, unit: 'hóa đơn', price: pk[1], qty: pk[0], opt: `I-${nfmt(pk[0])}` })));
+  if (e.pkgs.includes(0) && e.cq > 0 && e.cp > 0) out.push(L({ name: 'Gói hóa đơn điện tử iPOS Invoice', desc, unit: 'hóa đơn', price: e.cp, qty: e.cq, opt: `${nfmt(e.cq)} HÓA ĐƠN` }));
   if (e.fresh) out.push(L({ name: 'Phí khởi tạo hóa đơn điện tử', sub: 'Áp dụng khách hàng mua mới', unit: '1 lần', price: EINV_SETUP, qty: 1 }));
   return out;
 }
@@ -857,7 +857,10 @@ function build() {
   const sum = arr => { const s = arr.reduce((a, l) => ({ total: a.total + l.total, disc: a.disc + l.disc }), { total: 0, disc: 0 }); s.final = s.total - s.disc; return s; };
   const sA = sum(A), sB = sum(B), sC = sum(C), sK = sum(K), sP = sum(P), sD = sum(D), all = [sA, sB, sC, sK, sP, sD];
   const tot = k => all.reduce((a, x) => a + x[k], 0);
-  return { A, B, C, K, P, D, sA, sB, sC, sK, sP, sD, total: tot('total'), grand: tot('final'), saved: tot('disc') };
+  // iPOS Invoice chọn nhiều gói: mỗi gói là 1 phương án riêng (kèm phí khởi tạo), khách chọn 1 → không cộng tổng
+  const pk = isInv() ? A.filter(l => l.opt) : [], fee = A.filter(l => !l.opt);
+  const opts = pk.length > 1 ? pk.map(l => { const lines = [l, ...fee]; return { name: l.opt, lines, s: sum(lines) }; }) : null;
+  return { A, B, C, K, P, D, sA, sB, sC, sK, sP, sD, opts, total: tot('total'), grand: tot('final'), saved: tot('disc') };
 }
 const comboPrice = hddt => comboLines(hddt).reduce((a, l) => a + l.total - l.disc, 0);
 const titleA = () => isRn() ? `GIA HẠN PHẦN MỀM FABi ${rnMonths(S.rn.fabi)} THÁNG` + (S.rn.fabi.n > 1 ? ` – ${S.rn.fabi.n} CỬA HÀNG` : '') : isInv() ? 'HÓA ĐƠN ĐIỆN TỬ IPOS INVOICE' : isBox() ? (S.boxCombo ? 'GÓI COMBO FABiBox : POS + PHẦN MỀM BẢN QUYỀN TRỌN ĐỜI' : 'PHẦN MỀM QUẢN LÝ BÁN HÀNG FABiBox – BẢN QUYỀN TRỌN ĐỜI') + (S.boxHddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '')
@@ -865,9 +868,10 @@ const titleA = () => isRn() ? `GIA HẠN PHẦN MỀM FABi ${rnMonths(S.rn.fabi)
   : `GÓI COMBO PHẦN MỀM : POS + ${months()} THÁNG PHẦN MỀM` + (S.hddt ? ' + 10.000 HÓA ĐƠN ĐIỆN TỬ' : '') + (comboN() > 1 ? ` – ${comboN()} CỬA HÀNG` : '');
 // Các mục lớn đánh chữ theo thứ tự chỉ trên những mục có sản phẩm (bỏ B thì C thành B)
 function sections(q) {
-  return [[titleA(), q.A, q.sA], ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['CHỮ KÝ SỐ HILO', q.K, q.sK], [isRn() ? 'GIA HẠN PHẦN MỀM BỔ SUNG' : 'PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ KẾT NỐI PARTNER', q.P, q.sP], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
+  const head = q.opts ? q.opts.map((o, i) => [`PHƯƠNG ÁN ${i + 1}: GÓI HÓA ĐƠN ĐIỆN TỬ ${o.name}`, o.lines, o.s]) : [[titleA(), q.A, q.sA]];
+  return [...head, ['THIẾT BỊ MUA THÊM', q.B, q.sB], ['CHỮ KÝ SỐ HILO', q.K, q.sK], [isRn() ? 'GIA HẠN PHẦN MỀM BỔ SUNG' : 'PHẦN MỀM BỔ SUNG', q.C, q.sC], ['CHI PHÍ KẾT NỐI PARTNER', q.P, q.sP], ['CHI PHÍ TRIỂN KHAI TỈNH', q.D, q.sD]]
     .filter(([, lines]) => lines.length)
-    .map(([t, lines, s], i) => { const L = 'ABCDEF'[i]; return { title: `${L} - ${t}`, lines, s, lb: `(${L})` }; });
+    .map(([t, lines, s], i) => { const L = 'ABCDEFGHIJKLMN'[i]; return { title: `${L} - ${t}`, lines, s, lb: `(${L})` }; });
 }
 // Không lấy combo: chỉ thuê bao FABi 12 tháng + phí khởi tạo, không giảm giá
 function softOnlyLines() {
@@ -1157,24 +1161,31 @@ function secHTML(title, lines, s, lb) {
   return `<tr class="sec"><td colspan="${(S.spec ? 8 : 7) - nd}">${esc(title)}</td></tr>${rowsHTML(lines)}
     <tr class="subt"><td colspan="${(S.spec ? 5 : 4) + nd}">${subtLabel()}${lb}</td>${nd ? '' : `<td class="r">${vnd(s.total)}</td><td class="r dc">${s.disc ? '−' + vnd(s.disc) : '0'}</td>`}<td class="r">${vnd(s.final)}</td></tr>`;
 }
+// Dòng tổng cuối bảng: 1 dòng tổng hợp đồng, hoặc mỗi phương án 1 dòng tổng (cộng chữ ký số nếu có)
+function grandRows(q, secs = sections(q)) {
+  if (!q.opts) return [[`Tổng giá trị hợp đồng ${secs.map(x => x.lb).join(' + ')}`, q.grand]];
+  const k = secs.find(x => x.lines === q.K);
+  return q.opts.map((o, i) => [`Tổng phương án ${i + 1} ${secs[i].lb}${k ? ' + ' + k.lb : ''}`, o.s.final + (k ? q.sK.final : 0)]);
+}
 function renderDoc() {
   const q = build(), c = S.c;
   const any = q.A.length + q.B.length + q.C.length + q.K.length + q.P.length + q.D.length;
-  const secs = sections(q), parts = secs.map(x => x.lb).join(' + ');
+  const secs = sections(q);
   $('no-view').textContent = 'Số ' + (c.so || '—');
   $('date-view').textContent = 'Ngày ' + (fmtDate(c.ngay) || '—');
   const nd = noDisc() ? 1 : 0;
   $('tw').classList.toggle('nd', !!nd);
   $('tbody').innerHTML = any
     ? secs.map(x => secHTML(x.title, x.lines, x.s, x.lb)).join('')
-      + `<tr class="grand"><td colspan="${(S.spec ? 7 : 6) - nd}">Tổng giá trị hợp đồng ${parts}</td><td class="r money">${vnd(q.grand)}</td></tr>`
+      + grandRows(q, secs).map(([t, v]) => `<tr class="grand"><td colspan="${(S.spec ? 7 : 6) - nd}">${t}</td><td class="r money">${vnd(v)}</td></tr>`).join('')
     : `<tr class="empty"><td colspan="${(S.spec ? 8 : 7) - nd}">Chưa có sản phẩm. Chọn sản phẩm trong danh sách để thêm vào báo giá.</td></tr>`;
   $('notes').innerHTML = notesList().map(n => `<li>${n}</li>`).join('');
   $('save').textContent = q.saved ? `Khách tiết kiệm ${vnd(q.saved)}đ nhờ chương trình khuyến mãi` : '';
   $('tw').classList.toggle('hide-spec', !S.spec);
   $('show-spec').checked = S.spec;
-  $('m-total').textContent = vnd(q.grand) + 'đ';
-  $('m-sub').textContent = q.saved ? `Tiết kiệm ${vnd(q.saved)}đ` : 'Tổng giá trị hợp đồng';
+  const gr = grandRows(q, secs).map(r => r[1]);
+  $('m-total').textContent = q.opts ? `${vnd(Math.min(...gr))} – ${vnd(Math.max(...gr))}đ` : vnd(q.grand) + 'đ';
+  $('m-sub').textContent = q.opts ? `${q.opts.length} phương án · khách chọn 1` : q.saved ? `Tiết kiệm ${vnd(q.saved)}đ` : 'Tổng giá trị hợp đồng';
 }
 
 function renderDep() {
@@ -1377,6 +1388,12 @@ function plainText() {
     if (RN_IVT[R.ivt.k]) one(rnIvtLines(), `Gia hạn ${RN_IVT[R.ivt.k]} ${rnMonths(R.ivt)} tháng (mua ${R.ivt.y} năm + tặng ${rnGift(R.ivt)} tháng, ${RN_WHEN[R.ivt.when].full})${st(R.ivt.n)}`);
     rnHrPicked().forEach(k => { const g = R.hrs[k]; one(rnHrPkg(k, g), `Gia hạn ${HR[k].name} ${rnMonths(g, true)} tháng${g.y === 2 ? ' (mua 2 năm + tặng 6 tháng)' : ''}${st(g.n)}`); });
   }
+  else if (q.opts) {
+    const fee = q.A.filter(l => !l.opt);
+    out.push('', `Khách chọn 1 trong ${q.opts.length} phương án:`);
+    q.opts.forEach((o, i) => { const l = o.lines[0]; out.push(`• Phương án ${i + 1}: ${l.name} (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)${fee.length ? ' + phí khởi tạo' : ''}: ${money(o.s.final)}`); });
+    if (q.K.length) { out.push('', 'Chữ ký số (cộng thêm vào phương án đã chọn):'); q.K.forEach(l => out.push(`• ${l.name} (${l.sub}): ${money(l.total)}`)); }
+  }
   else if (isInv()) [...q.A, ...q.K].forEach((l, i) => out.push(...(i ? [] : ['']), `• ${l.name}${l.unit === 'hóa đơn' ? ` (${vnd(l.qty)} hóa đơn × ${vnd(l.price)}đ)` : l.sub ? ' (' + l.sub + ')' : ''}: ${money(l.total - l.disc)}`));
   // Phần mềm FABi / combo
   else if (q.A.length) {
@@ -1414,7 +1431,8 @@ function plainText() {
 
   q.P.forEach(l => out.push(`• ${l.name}${l.sub ? ` (${l.sub})` : ''}${l.qty > 1 ? ` × ${l.qty} ${l.zl || l.unit}` : ''}: ${priceLine(l.total, l.total - l.disc)}`));
   q.D.forEach(l => out.push(`• Chi phí triển khai tỉnh (${l.qty} ngày${l.sub ? ', ' + l.sub : ''}): ${money(l.total)}`));
-  out.push('', `TỔNG THANH TOÁN: ${money(q.grand)}`);
+  if (q.opts) out.push('', ...grandRows(q).map(([, v], i) => `TỔNG PHƯƠNG ÁN ${i + 1}: ${money(v)}`));
+  else out.push('', `TỔNG THANH TOÁN: ${money(q.grand)}`);
   if (q.saved) out.push(`Tiết kiệm: ${money(q.saved)}`);
   out.push('', `Liên hệ: ${c.nvkd}${c.nvsdt ? ' – ' + c.nvsdt : ''}`);
   return out.join('\n');
@@ -1463,7 +1481,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #b5bec9;padding
 <div class="info"><div>Tên KH: <b>${esc(c.ten)}</b></div><div>Số báo giá: ${esc(c.so)}</div><div>SĐT: ${esc(c.sdt)}</div><div>Ngày gửi: ${fmtDate(c.ngay)}</div><div>Tên mô hình: ${esc(c.mohinh)}</div><div>NVKD: ${esc(c.nvkd)}</div><div>Địa chỉ: ${esc(c.diachi)}</div><div>SĐT: ${esc(c.nvsdt)}</div></div>
 <table><thead><tr><th>Tên sản phẩm</th><th>Thông tin sản phẩm</th><th>Đơn vị</th><th>Đơn giá</th><th>SL</th><th>Tổng tiền</th>${nd ? '' : '<th>Giảm giá</th>'}<th>Thành tiền</th></tr></thead><tbody>
 ${sections(q).map(x => sec(x.title, x.lines, x.s, x.lb)).join('')}
-<tr class="grand"><td colspan="${7 - nd}">Tổng giá trị hợp đồng</td><td class="r">${vnd(q.grand)}</td></tr></tbody></table>
+${grandRows(q).map(([t, v]) => `<tr class="grand"><td colspan="${7 - nd}">${esc(t)}</td><td class="r">${vnd(v)}</td></tr>`).join('')}</tbody></table>
 <div class="note"><div class="nt"><b>* Ghi chú:</b></div>${notesList().map(n => `<div class="nt">- ${n}</div>`).join('')}</div>`;
   return { css, body };
 }
@@ -1572,8 +1590,8 @@ async function buildPdf() {
     ty = doc.lastAutoTable.finalY;
   });
   if (PH - 12 - ty < 12) { doc.addPage(); ty = 10; }
-  table([[{ content: 'Tổng giá trị hợp đồng', colSpan: 7 - nd, styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } },
-    { content: vnd(q.grand), styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } }]], { startY: ty, showHead: 'never' });
+  table(grandRows(q).map(([t, v]) => [{ content: t, colSpan: 7 - nd, styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } },
+    { content: vnd(v), styles: { fontStyle: 'bold', textColor: ORANGE, fillColor: gold } }]), { startY: ty, showHead: 'never' });
 
   // Ghi chú: mỗi dòng xuống trang nguyên vẹn
   let ny = doc.lastAutoTable.finalY + 6;
@@ -1710,9 +1728,11 @@ $('btn-xlsx').onclick = async () => {
     ws.addRow([]).height = 8;
   };
   sections(q).forEach(x => sec(x.title, x.lines, x.s, x.lb));
-  const g = ws.addRow(['Tổng giá trị hợp đồng', '', '', '', '', '', '', q.grand]); merge(g.number, 1, 7); g.height = 22;
-  for (let k = 1; k <= 8; k++) { const x = g.getCell(k); x.fill = yellow; x.font = { bold: true, color: { argb: 'FFC95A00' } }; x.border = border; x.alignment = { vertical: 'middle', horizontal: k === 8 ? 'right' : 'left' }; }
-  g.getCell(8).numFmt = NF;
+  grandRows(q).forEach(([t, v]) => {
+    const g = ws.addRow([t, '', '', '', '', '', '', v]); merge(g.number, 1, 7); g.height = 22;
+    for (let k = 1; k <= 8; k++) { const x = g.getCell(k); x.fill = yellow; x.font = { bold: true, color: { argb: 'FFC95A00' } }; x.border = border; x.alignment = { vertical: 'middle', horizontal: k === 8 ? 'right' : 'left' }; }
+    g.getCell(8).numFmt = NF;
+  });
   ws.addRow([]).height = 8;
 
   // 6) Ghi chú: chiều cao theo số dòng thực tế
